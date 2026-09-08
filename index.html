@@ -51,14 +51,14 @@
   .fld select{padding:6px;border:1px solid var(--line);border-radius:6px;font-size:13px;}
   .rangeval{font-weight:600;color:var(--accent);}
   .hint{font-size:11px;color:var(--sub);margin-top:8px;line-height:1.7;}
-  #chart{width:100%;overflow:auto;background:#fff;border-radius:6px;}
-  svg{display:block;}
+  #chart{width:100%;overflow:auto;background:#fff;border-radius:6px;text-align:center;}
+  svg{display:inline-block;}
 </style>
 </head>
 <body>
 <header>
   <h1>特性要因図 自動生成ツール</h1>
-  <p>QC7つ道具 — 6階層まで対応。表に入力するだけで魚の骨図を自動描画。配色・書体も自由に調整。PNG出力可。</p>
+  <p>QC7つ道具 — 6階層対応。配下の要因数に応じて間隔を自動調整。配色・書体・広がりも自由に調整。PNG出力可。</p>
 </header>
 
 <div class="wrap">
@@ -86,8 +86,25 @@
       <button class="btn btn-add" id="addRow">＋ 行を追加（一番下）</button>
     </div>
 
+    <details open>
+      <summary>レイアウト調整（詰まり・重なり対策）</summary>
+      <div class="details-body">
+        <div class="grid2">
+          <div class="fld"><label>枝の広がり <span class="rangeval" id="v_spread">1.0</span></label>
+            <input type="range" id="spread" min="0.6" max="2.2" step="0.1" value="1.0"></div>
+          <div class="fld"><label>骨の長さ <span class="rangeval" id="v_len">1.0</span></label>
+            <input type="range" id="lenScale" min="0.7" max="1.8" step="0.1" value="1.0"></div>
+          <div class="fld"><label>文字サイズ <span class="rangeval" id="v_fs">13</span></label>
+            <input type="range" id="fs" min="9" max="18" value="13"></div>
+          <div class="fld"><label>線の太さ <span class="rangeval" id="v_lw">1.4</span></label>
+            <input type="range" id="lw" min="1" max="4" step="0.2" value="1.4"></div>
+        </div>
+        <p class="hint" style="margin-top:6px;">図が詰まって見にくいときは「枝の広がり」を上げてください。横に伸びすぎたら「骨の長さ」を下げると調整できます。</p>
+      </div>
+    </details>
+
     <details>
-      <summary>デザイン設定（配色・書体・線）</summary>
+      <summary>配色・書体</summary>
       <div class="details-body">
         <div class="fld" style="margin-bottom:8px;">
           <label>配色テーマ（クリックで一括変更）</label>
@@ -106,10 +123,6 @@
               <option value='"Hiragino Maru Gothic ProN","Meiryo",sans-serif'>丸ゴシック</option>
             </select>
           </div>
-          <div class="fld"><label>文字サイズ <span class="rangeval" id="v_fs">13</span></label>
-            <input type="range" id="fs" min="10" max="18" value="13"></div>
-          <div class="fld"><label>線の太さ <span class="rangeval" id="v_lw">1.4</span></label>
-            <input type="range" id="lw" min="1" max="4" step="0.2" value="1.4"></div>
         </div>
       </div>
     </details>
@@ -119,9 +132,9 @@
       <button class="btn btn-ghost" id="png">PNG保存</button>
     </div>
     <p class="hint">
-      ・入力表は横スクロールできます。深い階層（4〜6次）は「なぜなぜ分析」の掘り下げに使えます。<br>
-      ・各行の <b>&#9650;/&#9660;</b> で並べ替え、<b>&times;</b> で削除。設定変更は即反映されます。<br>
-      ・同じ区分名を再入力すると同じ骨にまとめられます（空欄で継続すると確実です）。
+      ・各行の <b>&#9650;/&#9660;</b> で並べ替え、<b>&times;</b> で削除。<br>
+      ・同じ区分名を再入力すると同じ骨にまとめられます（空欄で継続すると確実です）。<br>
+      ・長い要因は自動で折り返します。図は表示エリアの中央に配置されます。
     </p>
   </div>
 
@@ -147,8 +160,8 @@ const THEMES={
   "ポップ（緑×桃）":{effect:"#2f855a",bg:"#fffdf7",top:"#38a169",bot:"#d53f8c",ink:"#2d3748"}
 };
 const S={effect:"#1f2933",bg:"#ffffff",top:"#2b6cb0",bot:"#c05621",ink:"#1f2933",
-  font:'"Hiragino Kaku Gothic ProN","Meiryo",sans-serif',fs:13,lw:1.4};
-const LEN=[150,112,74,58,46,40];               // 各階層の骨の長さ
+  font:'"Hiragino Kaku Gothic ProN","Meiryo",sans-serif',fs:13,lw:1.4,spread:1.0,lenScale:1.0};
+const LEN=[150,116,80,64,52,44];
 const SPINE_LEFT=170;
 
 const seed=[
@@ -201,8 +214,10 @@ for(const id in bind)document.getElementById(id).addEventListener('input',e=>{S[
 document.getElementById('font').addEventListener('change',e=>{S.font=e.target.value;draw();});
 document.getElementById('fs').addEventListener('input',e=>{S.fs=+e.target.value;v_fs.textContent=e.target.value;draw();});
 document.getElementById('lw').addEventListener('input',e=>{S.lw=+e.target.value;v_lw.textContent=e.target.value;draw();});
+document.getElementById('spread').addEventListener('input',e=>{S.spread=+e.target.value;v_spread.textContent=e.target.value;draw();});
+document.getElementById('lenScale').addEventListener('input',e=>{S.lenScale=+e.target.value;v_len.textContent=e.target.value;draw();});
 
-// ---- 表 → 階層ツリー（空欄は上を引き継ぐ / 同名は同じ親でまとめる）----
+// 表 → 階層ツリー
 function collect(){
   const rows=[...tbody.querySelectorAll('tr')];
   const root={name:'__root',children:[]};
@@ -222,35 +237,35 @@ function collect(){
   });
   return root.children;
 }
+function leafCount(n){return n.children.length?n.children.reduce((s,c)=>s+leafCount(c),0):1;}
 function norm(x,y){const m=Math.hypot(x,y)||1;return{x:x/m,y:y/m};}
 
 function draw(){
   const effect=document.getElementById('effect').value.trim()||"（特性）";
   const cats=collect();
-  const fs=S.fs;
+  const fs=S.fs, spread=S.spread, lenScale=S.lenScale;
+  const UNIT=26*spread;                 // 1葉あたりの間隔
   const lines=[],rects=[],texts=[],polys=[];
 
-  const topCats=cats.filter((_,i)=>i%2===0);
-  const botCats=cats.filter((_,i)=>i%2===1);
-  const maxSide=Math.max(topCats.length,botCats.length,1);
-  const spineUsable=Math.max(520,maxSide*170);
-  const spineRight=SPINE_LEFT+spineUsable;
-  const headW=150,headH=64;
-
-  // 背骨・矢印・特性ボックス
-  lines.push({x1:SPINE_LEFT,y1:0,x2:spineRight,y2:0,stroke:S.ink,w:3});
-  polys.push({points:[[spineRight,-8],[spineRight,8],[spineRight+14,0]],fill:S.ink});
-  rects.push({x:spineRight+14,y:-headH/2,w:headW,h:headH,rx:6,fill:S.effect});
-  {const per=Math.max(1,Math.floor((headW-16)/(fs+2)));
-   const wl=[];for(let i=0;i<effect.length;i+=per)wl.push(effect.substr(i,per));
-   const off=-(wl.length-1)*(fs+2)*0.6;
-   wl.forEach((ln,i)=>texts.push({x:spineRight+14+headW/2,y:off+i*(fs+2)*1.2+(fs+2)*0.35,text:ln,fill:S.bg,size:fs+2,weight:600,anchor:'middle'}));}
-
   function sizeOf(d){return Math.max(9,[fs+1,fs-1,fs-1,fs-2,fs-2,fs-3][Math.min(d,5)]);}
+  function pushLabel(text,x,y,fill,size,weight,anchor,up){
+    const maxc=size>=12?11:9;
+    if(text.length<=maxc){texts.push({x,y,text,fill,size,weight,anchor});return;}
+    const lines2=[];for(let i=0;i<text.length;i+=maxc)lines2.push(text.substr(i,maxc));
+    const lh=size*1.2;
+    lines2.forEach((ln,i)=>{
+      const yy=up? y-(lines2.length-1-i)*lh : y+i*lh;
+      texts.push({x,y:yy,text:ln,fill,size,weight,anchor});
+    });
+  }
   function layout(ax,ay,node,depth,color,catDir){
     const dir=(depth%2===0)?catDir:{x:-1,y:0};
-    const len=LEN[Math.min(depth,5)];
-    const tx=ax+dir.x*len, ty=ay+dir.y*len;
+    const kids=node.children;
+    const weights=kids.map(leafCount);
+    const total=weights.reduce((a,b)=>a+b,0)||1;
+    let boneLen=LEN[Math.min(depth,5)]*lenScale;
+    if(kids.length)boneLen=Math.max(boneLen, total*UNIT + boneLen*0.35);
+    const tx=ax+dir.x*boneLen, ty=ay+dir.y*boneLen;
     const w=depth===0?Math.max(2,S.lw+1):Math.max(1,S.lw-(depth>2?0.4:0));
     lines.push({x1:ax,y1:ay,x2:tx,y2:ty,stroke:color,w});
     const sz=sizeOf(depth);
@@ -261,43 +276,57 @@ function draw(){
       texts.push({x:tx,y:(up?ty-30:ty)+19,text:node.name,fill:S.bg,size:sz,weight:600,anchor:'middle'});
     }else{
       const anchor=dir.x<0?'end':'start';
-      const lx=dir.x<0?tx-4:tx+4;
-      const ly=ty+(dir.y<0?-4:(dir.y>0?13:-4));
-      texts.push({x:lx,y:ly,text:node.name,fill:S.ink,size:sz,weight:400,anchor});
+      const lx=dir.x<0?tx-5:tx+5;
+      const up=dir.y<=0;
+      const ly=ty+(dir.y<0?-4:(dir.y>0?14:-4));
+      pushLabel(node.name,lx,ly,S.ink,sz,400,anchor,up);
     }
-    const kids=node.children;
+    let cum=0;
     kids.forEach((k,ki)=>{
-      const t=kids.length===1?0.65:(0.30+0.60*ki/(kids.length-1));
+      const center=(cum+weights[ki]/2)/total; cum+=weights[ki];
+      const t=0.26+0.66*center;
       const cx=ax+(tx-ax)*t, cy=ay+(ty-ay)*t;
       layout(cx,cy,k,depth+1,color,catDir);
     });
   }
 
-  let ti=0,bi=0;
+  // 背骨・特性ボックス（間隔は配下の要因数で自動計算）
+  const catW=cats.map(leafCount);
+  const catTotal=catW.reduce((a,b)=>a+b,0)||1;
+  const spineUsable=Math.max(520, catTotal*34*spread, cats.length*150*spread);
+  const spineRight=SPINE_LEFT+spineUsable;
+  const headW=150,headH=64;
+  lines.push({x1:SPINE_LEFT,y1:0,x2:spineRight,y2:0,stroke:S.ink,w:3});
+  polys.push({points:[[spineRight,-8],[spineRight,8],[spineRight+14,0]],fill:S.ink});
+  rects.push({x:spineRight+14,y:-headH/2,w:headW,h:headH,rx:6,fill:S.effect});
+  {const per=Math.max(1,Math.floor((headW-16)/(fs+2)));
+   const wl=[];for(let i=0;i<effect.length;i+=per)wl.push(effect.substr(i,per));
+   const off=-(wl.length-1)*(fs+2)*0.6;
+   wl.forEach((ln,i)=>texts.push({x:spineRight+14+headW/2,y:off+i*(fs+2)*1.2+(fs+2)*0.35,text:ln,fill:S.bg,size:fs+2,weight:600,anchor:'middle'}));}
+
+  let cum=0;
   cats.forEach((cat,i)=>{
+    const center=(cum+catW[i]/2)/catTotal; cum+=catW[i];
+    const ax=SPINE_LEFT+spineUsable*(0.06+0.88*center);
     const top=i%2===0;
-    const sideCount=top?topCats.length:botCats.length;
-    const sideIdx=top?ti++:bi++;
-    const ax=SPINE_LEFT+spineUsable*((sideIdx+1)/(sideCount+1));
     const catDir=top?norm(-0.5,-1):norm(-0.5,1);
     layout(ax,0,cat,0,top?S.top:S.bot,catDir);
   });
 
-  // ---- バウンディングボックス ----
+  // バウンディングボックス
   let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;
   const ext=(x,y)=>{if(x<minX)minX=x;if(x>maxX)maxX=x;if(y<minY)minY=y;if(y>maxY)maxY=y;};
   lines.forEach(l=>{ext(l.x1,l.y1);ext(l.x2,l.y2);});
   rects.forEach(r=>{ext(r.x,r.y);ext(r.x+r.w,r.y+r.h);});
   polys.forEach(p=>p.points.forEach(pt=>ext(pt[0],pt[1])));
-  texts.forEach(t=>{const w=t.text.length*t.size*0.72;
-    let x0,x1;if(t.anchor==='end'){x1=t.x;x0=t.x-w;}else if(t.anchor==='start'){x0=t.x;x1=t.x+w;}else{x0=t.x-w/2;x1=t.x+w/2;}
+  texts.forEach(t=>{const ww=t.text.length*t.size*0.72;let x0,x1;
+    if(t.anchor==='end'){x1=t.x;x0=t.x-ww;}else if(t.anchor==='start'){x0=t.x;x1=t.x+ww;}else{x0=t.x-ww/2;x1=t.x+ww/2;}
     ext(x0,t.y-t.size);ext(x1,t.y+4);});
-  const pad=34;
+  const pad=36;
   const vbX=minX-pad,vbY=minY-pad,vbW=(maxX-minX)+pad*2,vbH=(maxY-minY)+pad*2;
 
-  // ---- 描画 ----
   const svg=el('svg',{viewBox:vbX+' '+vbY+' '+vbW+' '+vbH,width:Math.round(vbW),height:Math.round(vbH),id:'fb'});
-  svg.style.fontFamily=S.font;
+  svg.style.fontFamily=S.font;svg.style.maxWidth='100%';
   svg.appendChild(el('rect',{x:vbX,y:vbY,width:vbW,height:vbH,fill:S.bg}));
   lines.forEach(l=>svg.appendChild(el('line',{x1:l.x1,y1:l.y1,x2:l.x2,y2:l.y2,stroke:l.stroke,'stroke-width':l.w,'stroke-linecap':'round'})));
   polys.forEach(p=>svg.appendChild(el('polygon',{points:p.points.map(q=>q.join(',')).join(' '),fill:p.fill})));
