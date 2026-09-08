@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>特性要因図 自動生成ツール</title>
+<style>
+  :root{
+    --ink:#1f2933; --sub:#52616b; --line:#c9d2d9; --bg:#f4f6f8;
+    --accent:#2b6cb0; --card:#ffffff;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:"Segoe UI","Hiragino Kaku Gothic ProN","Meiryo",sans-serif;
+    color:var(--ink);background:var(--bg);}
+  header{background:#1f2933;color:#fff;padding:14px 20px;}
+  header h1{margin:0;font-size:18px;font-weight:600;letter-spacing:.02em;}
+  header p{margin:4px 0 0;font-size:12px;color:#b0bcc7;}
+  .wrap{display:flex;gap:16px;padding:16px;align-items:flex-start;flex-wrap:wrap;}
+  .panel{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px;}
+  .left{flex:0 0 430px;max-width:100%;}
+  .right{flex:1 1 560px;min-width:320px;}
+  h2{font-size:13px;margin:0 0 10px;color:var(--sub);
+    border-left:3px solid var(--accent);padding-left:8px;}
+  details{margin-top:14px;border:1px solid var(--line);border-radius:8px;overflow:hidden;}
+  summary{cursor:pointer;padding:9px 12px;background:#eef1f4;font-size:13px;
+    font-weight:600;color:var(--sub);list-style:none;}
+  summary::-webkit-details-marker{display:none;}
+  summary::before{content:"▸ ";color:var(--accent);}
+  details[open] summary::before{content:"▾ ";}
+  .details-body{padding:12px;}
+  input[type=text]{width:100%;padding:8px 10px;border:1px solid var(--line);
+    border-radius:6px;font-size:14px;}
+  .presets{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0 4px;}
+  .presets button,.theme button{font-size:11px;padding:5px 10px;border:1px solid var(--line);
+    background:#fff;border-radius:14px;cursor:pointer;color:var(--sub);}
+  .presets button:hover,.theme button:hover{background:#eef3f8;border-color:var(--accent);color:var(--accent);}
+  .theme{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px;}
+  table{width:100%;border-collapse:collapse;margin-top:8px;font-size:13px;}
+  th{background:#eef1f4;color:var(--sub);font-weight:600;font-size:11px;padding:6px;
+    border:1px solid var(--line);}
+  td{border:1px solid var(--line);padding:0;}
+  td input{border:none;width:100%;padding:7px 8px;font-size:13px;background:transparent;}
+  td input:focus{outline:2px solid var(--accent);outline-offset:-2px;}
+  .rowbtn{width:34px;text-align:center;}
+  .rowbtn button{border:none;background:none;cursor:pointer;color:#b23;font-size:15px;line-height:1;}
+  .actions{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;}
+  .btn{padding:9px 14px;border-radius:6px;border:none;cursor:pointer;font-size:13px;font-weight:600;}
+  .btn-primary{background:var(--accent);color:#fff;}
+  .btn-ghost{background:#fff;color:var(--accent);border:1px solid var(--accent);}
+  .btn-add{background:#eef3f8;color:var(--accent);border:1px dashed var(--accent);}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px 14px;}
+  .fld{font-size:12px;color:var(--sub);}
+  .fld label{display:block;margin-bottom:4px;}
+  .fld input[type=color]{width:100%;height:32px;border:1px solid var(--line);
+    border-radius:6px;padding:2px;background:#fff;cursor:pointer;}
+  .fld select,.fld input[type=range]{width:100%;}
+  .fld select{padding:6px;border:1px solid var(--line);border-radius:6px;font-size:13px;}
+  .rangeval{font-weight:600;color:var(--accent);}
+  .hint{font-size:11px;color:var(--sub);margin-top:8px;line-height:1.6;}
+  #chart{width:100%;overflow:auto;background:#fff;border-radius:6px;}
+  svg{display:block;}
+</style>
+</head>
+<body>
+<header>
+  <h1>特性要因図 自動生成ツール</h1>
+  <p>QC7つ道具 — 表に入力するだけで魚の骨図を自動描画。配色・書体も自由に調整。PNG出力対応。</p>
+</header>
+
+<div class="wrap">
+  <div class="panel left">
+    <h2>① 特性（結果・問題）</h2>
+    <input type="text" id="effect" value="転倒・転落インシデント" placeholder="例：転倒・転落インシデント">
+
+    <h2 style="margin-top:16px;">② 要因区分の雛形</h2>
+    <div class="presets" id="presets"></div>
+
+    <h2 style="margin-top:16px;">③ 要因の入力</h2>
+    <table>
+      <thead>
+        <tr><th style="width:130px;">要因区分（大骨）</th><th>要因（中骨）</th><th class="rowbtn"></th></tr>
+      </thead>
+      <tbody id="tbody"></tbody>
+    </table>
+    <div class="actions">
+      <button class="btn btn-add" id="addRow">＋ 行を追加</button>
+    </div>
+
+    <details>
+      <summary>デザイン設定（配色・書体・線）</summary>
+      <div class="details-body">
+        <div class="fld" style="margin-bottom:8px;">
+          <label>配色テーマ（クリックで一括変更）</label>
+          <div class="theme" id="themes"></div>
+        </div>
+        <div class="grid2">
+          <div class="fld"><label>特性ボックス</label><input type="color" id="c_effect" value="#1f2933"></div>
+          <div class="fld"><label>背景色</label><input type="color" id="c_bg" value="#ffffff"></div>
+          <div class="fld"><label>上側の骨</label><input type="color" id="c_top" value="#2b6cb0"></div>
+          <div class="fld"><label>下側の骨</label><input type="color" id="c_bot" value="#c05621"></div>
+          <div class="fld"><label>背骨・文字</label><input type="color" id="c_ink" value="#1f2933"></div>
+          <div class="fld"><label>書体</label>
+            <select id="font">
+              <option value='"Hiragino Kaku Gothic ProN","Meiryo",sans-serif'>ゴシック</option>
+              <option value='"Hiragino Mincho ProN","Yu Mincho","MS Mincho",serif'>明朝</option>
+              <option value='"Hiragino Maru Gothic ProN","Meiryo",sans-serif'>丸ゴシック</option>
+            </select>
+          </div>
+          <div class="fld"><label>文字サイズ <span class="rangeval" id="v_fs">13</span></label>
+            <input type="range" id="fs" min="10" max="18" value="13"></div>
+          <div class="fld"><label>線の太さ <span class="rangeval" id="v_lw">1.4</span></label>
+            <input type="range" id="lw" min="1" max="4" step="0.2" value="1.4"></div>
+        </div>
+      </div>
+    </details>
+
+    <div class="actions" style="margin-top:14px;">
+      <button class="btn btn-primary" id="draw">図を生成</button>
+      <button class="btn btn-ghost" id="png">PNG保存</button>
+    </div>
+    <p class="hint">
+      ・同じ「要因区分」を複数行に書くと、その大骨に要因がまとめて並びます。<br>
+      ・要因区分を空欄にすると直前の区分に続けて追加。<br>
+      ・区分は上下交互に自動配置（4〜6個が最適）。設定変更は即反映されます。
+    </p>
+  </div>
+
+  <div class="panel right">
+    <h2>特性要因図</h2>
+    <div id="chart"></div>
+  </div>
+</div>
+
+<script>
+const SVGNS="http://www.w3.org/2000/svg";
+const PRESETS={
+  "4M":["人","機械","材料","方法"],
+  "5M1E":["人","機械","材料","方法","測定","環境"],
+  "医療4M":["人（スタッフ）","設備・機器","患者・薬剤","手順・方法"],
+  "サービス":["人","仕組み","環境","情報"]
+};
+const THEMES={
+  "医療（青×橙）":{effect:"#1f2933",bg:"#ffffff",top:"#2b6cb0",bot:"#c05621",ink:"#1f2933"},
+  "ビジネス（紺）":{effect:"#1a365d",bg:"#ffffff",top:"#2c5282",bot:"#4a5568",ink:"#1a202c"},
+  "モノクロ":{effect:"#000000",bg:"#ffffff",top:"#333333",bot:"#666666",ink:"#000000"},
+  "ダーク":{effect:"#e2e8f0",bg:"#1a202c",top:"#63b3ed",bot:"#f6ad55",ink:"#e2e8f0"},
+  "ポップ（緑×桃）":{effect:"#2f855a",bg:"#fffdf7",top:"#38a169",bot:"#d53f8c",ink:"#2d3748"}
+};
+
+const S={effect:"#1f2933",bg:"#ffffff",top:"#2b6cb0",bot:"#c05621",ink:"#1f2933",
+  font:'"Hiragino Kaku Gothic ProN","Meiryo",sans-serif',fs:13,lw:1.4};
+
+const seed=[
+  ["人（スタッフ）","観察不足"],["人（スタッフ）","声かけ不足"],
+  ["設備・機器","ベッド柵不備"],["設備・機器","ナースコール未設置"],
+  ["患者・薬剤","睡眠薬の影響"],["患者・薬剤","認知機能低下"],
+  ["手順・方法","巡視間隔が長い"],["手順・方法","離床センサー未使用"]
+];
+
+const tbody=document.getElementById('tbody');
+function addRow(cat="",cause=""){
+  const tr=document.createElement('tr');
+  tr.innerHTML='<td><input type="text" class="c-cat" value="'+cat+'"></td>'+
+    '<td><input type="text" class="c-cause" value="'+cause+'"></td>'+
+    '<td class="rowbtn"><button title="削除">×</button></td>';
+  tr.querySelector('button').onclick=()=>{tr.remove();draw();};
+  tr.querySelectorAll('input').forEach(i=>i.addEventListener('input',draw));
+  tbody.appendChild(tr);
+}
+seed.forEach(r=>addRow(r[0],r[1]));
+document.getElementById('addRow').onclick=()=>addRow();
+document.getElementById('effect').addEventListener('input',draw);
+
+const pdiv=document.getElementById('presets');
+Object.keys(PRESETS).forEach(k=>{
+  const b=document.createElement('button');b.textContent=k;
+  b.onclick=()=>{tbody.innerHTML="";PRESETS[k].forEach(c=>addRow(c,""));draw();};
+  pdiv.appendChild(b);
+});
+
+const tdiv=document.getElementById('themes');
+Object.keys(THEMES).forEach(k=>{
+  const b=document.createElement('button');b.textContent=k;
+  b.onclick=()=>{const t=THEMES[k];
+    S.effect=t.effect;S.bg=t.bg;S.top=t.top;S.bot=t.bot;S.ink=t.ink;
+    c_effect.value=t.effect;c_bg.value=t.bg;c_top.value=t.top;c_bot.value=t.bot;c_ink.value=t.ink;
+    draw();};
+  tdiv.appendChild(b);
+});
+
+const bind={c_effect:'effect',c_bg:'bg',c_top:'top',c_bot:'bot',c_ink:'ink'};
+for(const id in bind){document.getElementById(id).addEventListener('input',e=>{S[bind[id]]=e.target.value;draw();});}
+document.getElementById('font').addEventListener('change',e=>{S.font=e.target.value;draw();});
+document.getElementById('fs').addEventListener('input',e=>{S.fs=+e.target.value;v_fs.textContent=e.target.value;draw();});
+document.getElementById('lw').addEventListener('input',e=>{S.lw=+e.target.value;v_lw.textContent=e.target.value;draw();});
+
+function collect(){
+  const rows=[...tbody.querySelectorAll('tr')];
+  const map=new Map();const order=[];let last="";
+  rows.forEach(tr=>{
+    let cat=tr.querySelector('.c-cat').value.trim();
+    const cause=tr.querySelector('.c-cause').value.trim();
+    if(cat==="")cat=last;else last=cat;
+    if(!cat)return;
+    if(!map.has(cat)){map.set(cat,[]);order.push(cat);}
+    if(cause)map.get(cat).push(cause);
+  });
+  return order.map(c=>({name:c,causes:map.get(c)}));
+}
+
+function draw(){
+  const effect=document.getElementById('effect').value.trim()||"（特性）";
+  const cats=collect();
+  const chart=document.getElementById('chart');
+  chart.innerHTML="";
+
+  const maxCauses=Math.max(3,...cats.map(c=>c.causes.length));
+  const topCount=Math.ceil(cats.length/2);
+
+  const W=Math.max(900, 260+cats.length*135);
+  const boneLen=90+maxCauses*(18+S.fs);
+  const H=Math.max(560, 200+boneLen*2);
+  const spineY=H/2;
+  const headX=W-180, headW=150, headH=64;
+  const startX=110;
+
+  const svg=el('svg',{viewBox:'0 0 '+W+' '+H,width:W,height:H,id:'fb'});
+  svg.style.fontFamily=S.font;
+  svg.appendChild(el('rect',{x:0,y:0,width:W,height:H,fill:S.bg}));
+
+  svg.appendChild(el('line',{x1:startX,y1:spineY,x2:headX,y2:spineY,stroke:S.ink,'stroke-width':3}));
+  svg.appendChild(el('polygon',{points:headX+','+(spineY-8)+' '+headX+','+(spineY+8)+' '+(headX+14)+','+spineY,fill:S.ink}));
+
+  svg.appendChild(el('rect',{x:headX+14,y:spineY-headH/2,width:headW,height:headH,rx:6,fill:S.effect}));
+  wrapText(svg,effect,headX+14+headW/2,spineY,headW-16,S.bg,S.fs+2,600,'middle');
+
+  let topIdx=0,botIdx=0;
+  const usableStart=startX+70, usableEnd=headX-70;
+  cats.forEach((cat,i)=>{
+    const top=(i%2===0);
+    const idxOnSide=top?topIdx++:botIdx++;
+    const slots=top?topCount:(cats.length-topCount);
+    const frac=(idxOnSide+1)/(slots+1);
+    const ax=usableStart+(usableEnd-usableStart)*frac;
+    const dir=top?-1:1;
+    const ey=spineY+dir*boneLen;
+    const ex=ax-70;
+    const color=top?S.top:S.bot;
+
+    svg.appendChild(el('line',{x1:ax,y1:spineY,x2:ex,y2:ey,stroke:color,'stroke-width':Math.max(2,S.lw+1)}));
+    const lw=Math.max(70,cat.name.length*(S.fs+2)+16);
+    svg.appendChild(el('rect',{x:ex-lw/2,y:top?ey-30:ey,width:lw,height:28,rx:5,fill:color}));
+    svg.appendChild(txt(cat.name,ex,(top?ey-30:ey)+19,S.bg,S.fs,600,'middle'));
+
+    const n=cat.causes.length;
+    cat.causes.forEach((cause,j)=>{
+      const t=(j+1)/(n+1);
+      const px=ax+(ex-ax)*t, py=spineY+(ey-spineY)*t;
+      const cx=px-110;
+      svg.appendChild(el('line',{x1:px,y1:py,x2:cx,y2:py,stroke:color,'stroke-width':S.lw}));
+      svg.appendChild(txt(cause,cx-4,py-4,S.ink,S.fs-1,400,'end'));
+    });
+  });
+  chart.appendChild(svg);
+}
+
+function el(tag,attrs){const e=document.createElementNS(SVGNS,tag);
+  for(const k in attrs)e.setAttribute(k,attrs[k]);return e;}
+function txt(s,x,y,fill,size,weight,anchor){
+  const t=el('text',{x,y,fill,'font-size':size,'font-weight':weight,'text-anchor':anchor});
+  t.textContent=s;return t;}
+function wrapText(svg,s,cx,cy,maxw,fill,size,weight,anchor){
+  const per=Math.max(1,Math.floor(maxw/size));
+  const lines=[];for(let i=0;i<s.length;i+=per)lines.push(s.slice(i,i+per));
+  const off=-(lines.length-1)*size*0.6;
+  lines.forEach((ln,i)=>svg.appendChild(txt(ln,cx,cy+off+i*size*1.2+size*0.35,fill,size,weight,anchor)));
+}
+
+document.getElementById('png').onclick=()=>{
+  if(!document.getElementById('fb'))draw();
+  const s=document.getElementById('fb');
+  const xml=new XMLSerializer().serializeToString(s);
+  const vb=s.getAttribute('viewBox').split(' ').map(Number);
+  const scale=2,img=new Image();
+  const url=URL.createObjectURL(new Blob([xml],{type:'image/svg+xml;charset=utf-8'}));
+  img.onload=()=>{
+    const cv=document.createElement('canvas');cv.width=vb[2]*scale;cv.height=vb[3]*scale;
+    const ctx=cv.getContext('2d');ctx.scale(scale,scale);ctx.drawImage(img,0,0);
+    URL.revokeObjectURL(url);
+    const a=document.createElement('a');a.download='特性要因図.png';a.href=cv.toDataURL('image/png');a.click();
+  };
+  img.src=url;
+};
+
+document.getElementById('draw').onclick=draw;
+draw();
+</script>
+</body>
+</html>
