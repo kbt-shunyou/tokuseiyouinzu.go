@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>特性要因図 自動生成ツール（クラウド保存・重なり防止版）</title>
+<title>特性要因図 自動生成ツール</title>
 <style>
   :root{--ink:#1f2933;--sub:#52616b;--line:#c9d2d9;--bg:#f4f6f8;--accent:#2b6cb0;--card:#fff;}
   *{box-sizing:border-box;}
@@ -35,7 +35,8 @@
   input[type=text].effect{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:6px;font-size:14px;}
   .metagrid{display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:8px;}
   .metagrid .fld input{width:100%;padding:8px;border:1px solid var(--line);border-radius:6px;font-size:13px;}
-  .editing{font-size:12px;color:var(--accent);align-self:center;}
+  .editing{font-size:12px;color:var(--accent);}
+  .editstate{font-size:12px;color:var(--sub);align-self:center;}
   .presets{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0 4px;}
   .presets button,.theme button{font-size:11px;padding:5px 10px;border:1px solid var(--line);background:#fff;border-radius:14px;cursor:pointer;color:var(--sub);}
   .presets button:hover,.theme button:hover{background:#eef3f8;border-color:var(--accent);color:var(--accent);}
@@ -81,6 +82,11 @@
   table.listtbl .mini:hover{border-color:var(--accent);color:var(--accent);}
   table.listtbl .mini.del:hover{border-color:#c53030;color:#c53030;}
   .empty{padding:26px;text-align:center;color:var(--sub);font-size:13px;}
+  /* モーダル */
+  .modal{display:none;position:fixed;inset:0;background:rgba(15,23,32,.5);z-index:80;align-items:center;justify-content:center;padding:16px;}
+  .modal.show{display:flex;}
+  .modalcard{background:#fff;border-radius:12px;padding:20px;width:480px;max-width:100%;box-shadow:0 12px 40px rgba(0,0,0,.3);}
+  .modalcard h3{margin:0 0 14px;font-size:16px;color:var(--ink);}
   #toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1f2933;color:#fff;padding:10px 18px;border-radius:8px;font-size:13px;box-shadow:0 4px 14px rgba(0,0,0,.25);z-index:99;opacity:0;transition:opacity .2s;pointer-events:none;}
 </style>
 </head>
@@ -89,7 +95,7 @@
   <div class="hbar">
     <div>
       <h1>特性要因図 自動生成ツール</h1>
-      <p>QC7つ道具 — 6階層対応。重なり防止レイアウトで文字重なり・線交差を防止。作成日・変更日・部署・氏名・設定をクラウド保存。</p>
+      <p>QC7つ道具 — 文字を大きく保ったまま重なり・交差を防止。作成日・変更日・部署・氏名・設定をクラウド保存。</p>
       <div class="cloudstat" id="cloudStat">保存先を確認中…</div>
     </div>
     <nav class="topnav">
@@ -103,26 +109,19 @@
 <div id="screenEditor" class="screen active">
 <div class="wrap">
   <div class="panel left">
-    <h2>&#9312; 特性（結果・問題）</h2>
+    <div class="actions" style="margin-top:0;">
+      <button class="btn btn-add" id="newDiagram">🗎 新規作成</button>
+      <button class="btn btn-primary" id="openSave">💾 保存</button>
+      <span class="editstate" id="editState">新規作成</span>
+    </div>
+
+    <h2 style="margin-top:14px;">&#9312; 特性（結果・問題）</h2>
     <input type="text" id="effect" class="effect" value="転倒・転落インシデント" placeholder="例：転倒・転落インシデント">
 
-    <h2 style="margin-top:16px;">&#9313; 保存情報（この内容で履歴に残ります）</h2>
-    <div class="metagrid">
-      <div class="fld"><label>タイトル</label><input type="text" id="m_title" placeholder="例：転倒転落 要因分析"></div>
-      <div class="fld"><label>部署</label><input type="text" id="m_dept" placeholder="例：3階病棟"></div>
-      <div class="fld"><label>氏名</label><input type="text" id="m_name" placeholder="例：山田"></div>
-    </div>
-    <div class="actions">
-      <button class="btn btn-primary" id="saveNew">＋ 新規保存</button>
-      <button class="btn btn-ghost" id="saveOver" disabled>上書き更新</button>
-      <button class="btn btn-add" id="clearEdit">新規作成（クリア）</button>
-      <span id="editingLabel" class="editing"></span>
-    </div>
-
-    <h2 style="margin-top:16px;">&#9314; 要因区分の雛形</h2>
+    <h2 style="margin-top:16px;">&#9313; 要因区分の雛形</h2>
     <div class="presets" id="presets"></div>
 
-    <h2 style="margin-top:16px;">&#9315; 要因の入力（左のセルを空欄にすると上の階層を引き継ぎます）</h2>
+    <h2 style="margin-top:16px;">&#9314; 要因の入力（左のセルを空欄にすると上の階層を引き継ぎます）</h2>
     <div class="tablewrap">
       <table>
         <thead>
@@ -145,20 +144,20 @@
         <div class="grid2">
           <div class="switch">
             <label><input type="checkbox" id="cleanMode" checked>
-              重なり防止レイアウト（自動整列：文字の重なり・線の交差を強制的に防止）</label>
+              重なり防止レイアウト（文字を大きく保ち、重なり・交差を防止）</label>
           </div>
-          <div class="fld"><label>枝の間隔 <span class="rangeval" id="v_spread">1.0</span></label>
-            <input type="range" id="spread" min="0.6" max="2.4" step="0.1" value="1.0"></div>
-          <div class="fld"><label>ラベル最大幅 <span class="rangeval" id="v_mw">140</span></label>
-            <input type="range" id="maxLabelW" min="80" max="280" step="10" value="140"></div>
-          <div class="fld"><label>文字サイズ <span class="rangeval" id="v_fs">13</span></label>
-            <input type="range" id="fs" min="9" max="18" value="13"></div>
-          <div class="fld"><label>線の太さ <span class="rangeval" id="v_lw">1.4</span></label>
-            <input type="range" id="lw" min="1" max="4" step="0.2" value="1.4"></div>
+          <div class="fld"><label>枝の間隔 <span class="rangeval" id="v_spread">1.1</span></label>
+            <input type="range" id="spread" min="0.6" max="2.6" step="0.1" value="1.1"></div>
+          <div class="fld"><label>文字サイズ <span class="rangeval" id="v_fs">15</span></label>
+            <input type="range" id="fs" min="11" max="24" value="15"></div>
+          <div class="fld"><label>折り返し幅（長い時のみ）<span class="rangeval" id="v_mw">240</span></label>
+            <input type="range" id="maxLabelW" min="120" max="420" step="20" value="240"></div>
+          <div class="fld"><label>線の太さ <span class="rangeval" id="v_lw">1.8</span></label>
+            <input type="range" id="lw" min="1" max="4" step="0.2" value="1.8"></div>
           <div class="fld"><label>骨の長さ（従来レイアウト用）<span class="rangeval" id="v_len">1.0</span></label>
             <input type="range" id="lenScale" min="0.7" max="1.8" step="0.1" value="1.0"></div>
         </div>
-        <p class="hint" style="margin-top:6px;">重なり防止レイアウトでは、文字量や階層が増えても<b>重なり・交差が起きません</b>。図が横に広い時は「ラベル最大幅」を下げる（＝折り返し）と縦長になります。従来の斜め骨に戻すにはチェックを外してください。</p>
+        <p class="hint" style="margin-top:6px;">文字は縮小せず箱いっぱいに表示します。図が横に広い場合は「折り返し幅」を下げると長いラベルだけ折り返して縦に収まります。従来の斜め骨に戻すにはチェックを外してください。</p>
       </div>
     </details>
 
@@ -232,10 +231,27 @@
   </div>
 </div>
 
+<!-- ===== 保存モーダル ===== -->
+<div class="modal" id="saveModal">
+  <div class="modalcard">
+    <h3>保存情報</h3>
+    <div class="metagrid">
+      <div class="fld"><label>タイトル<span style="color:#c53030">*</span></label><input type="text" id="m_title" placeholder="例：転倒転落 要因分析"></div>
+      <div class="fld"><label>部署</label><input type="text" id="m_dept" placeholder="例：3階病棟"></div>
+      <div class="fld"><label>氏名</label><input type="text" id="m_name" placeholder="例：山田"></div>
+    </div>
+    <div class="editing" id="editingLabel2" style="margin-top:10px;"></div>
+    <div class="actions">
+      <button class="btn btn-primary" id="saveNew">＋ 新規保存</button>
+      <button class="btn btn-ghost" id="saveOver" disabled>上書き更新</button>
+      <div style="flex:1"></div>
+      <button class="btn btn-add" id="saveCancel">キャンセル</button>
+    </div>
+    <p class="hint">タイトルは必須です。「上書き更新」は、保存一覧から開いたデータを編集しているときに有効になります。</p>
+  </div>
+</div>
+
 <script>
-/* ============================================================
-   GASウェブアプリ URL（デプロイ済み）
-   ============================================================ */
 const GAS_URL = 'https://script.google.com/macros/s/AKfycbw7g332so-fll8-05x33HlxgmBirhhKVzxScnqe5SYqjfAvyJRGp5KklGCg55Finqlt/exec';
 
 const SVGNS="http://www.w3.org/2000/svg";
@@ -253,7 +269,7 @@ const THEMES={
   "ポップ（緑×桃）":{effect:"#2f855a",bg:"#fffdf7",top:"#38a169",bot:"#d53f8c",ink:"#2d3748"}
 };
 const S={effect:"#1f2933",bg:"#ffffff",top:"#2b6cb0",bot:"#c05621",ink:"#1f2933",
-  font:'"Hiragino Kaku Gothic ProN","Meiryo",sans-serif',fs:13,lw:1.4,spread:1.0,lenScale:1.0,maxLabelW:140,clean:true};
+  font:'"Hiragino Kaku Gothic ProN","Meiryo",sans-serif',fs:15,lw:1.8,spread:1.1,lenScale:1.0,maxLabelW:240,clean:true};
 const LEN=[150,116,80,64,52,44];
 const SPINE_LEFT=170;
 const _mc=document.createElement('canvas').getContext('2d');
@@ -315,7 +331,6 @@ document.getElementById('lenScale').addEventListener('input',e=>{S.lenScale=+e.t
 document.getElementById('maxLabelW').addEventListener('input',e=>{S.maxLabelW=+e.target.value;v_mw.textContent=e.target.value;draw();});
 document.getElementById('cleanMode').addEventListener('change',e=>{S.clean=e.target.checked;draw();});
 
-// 表 → 階層ツリー
 function collect(){
   const rows=[...tbody.querySelectorAll('tr')];
   const root={name:'__root',children:[]};
@@ -337,11 +352,9 @@ function collect(){
 }
 function leafCount(n){return n.children.length?n.children.reduce((s,c)=>s+leafCount(c),0):1;}
 function norm(x,y){const m=Math.hypot(x,y)||1;return{x:x/m,y:y/m};}
-function sizeOfDepth(d){return Math.max(9,[S.fs+1,S.fs,S.fs-1,S.fs-1,S.fs-2,S.fs-2][Math.min(d,5)]);}
+function sizeOfDepth(d){return Math.max(9,[S.fs+1,S.fs-1,S.fs-1,S.fs-2,S.fs-2,S.fs-3][Math.min(d,5)]);}
 
-/* ============================================================
-   共通レンダリング（プリミティブ → SVG）
-   ============================================================ */
+/* ===== 共通レンダリング ===== */
 function render(lines,rects,texts,polys){
   let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;
   const ext=(x,y)=>{if(x<minX)minX=x;if(x>maxX)maxX=x;if(y<minY)minY=y;if(y>maxY)maxY=y;};
@@ -351,15 +364,15 @@ function render(lines,rects,texts,polys){
   texts.forEach(t=>{const ww=t.text.length*t.size*1.0;let x0,x1;
     if(t.anchor==='end'){x1=t.x;x0=t.x-ww;}else if(t.anchor==='start'){x0=t.x;x1=t.x+ww;}else{x0=t.x-ww/2;x1=t.x+ww/2;}
     ext(x0,t.y-t.size);ext(x1,t.y+4);});
-  const pad=36;
+  const pad=40;
   const vbX=minX-pad,vbY=minY-pad,vbW=(maxX-minX)+pad*2,vbH=(maxY-minY)+pad*2;
 
   const svg=el('svg',{viewBox:vbX+' '+vbY+' '+vbW+' '+vbH,width:Math.round(vbW),height:Math.round(vbH),id:'fb'});
-  svg.style.fontFamily=S.font;svg.style.maxWidth='100%';
+  svg.style.fontFamily=S.font;svg.style.maxWidth='none';
   svg.appendChild(el('rect',{x:vbX,y:vbY,width:vbW,height:vbH,fill:S.bg}));
   lines.forEach(l=>svg.appendChild(el('line',{x1:l.x1,y1:l.y1,x2:l.x2,y2:l.y2,stroke:l.stroke,'stroke-width':l.w,'stroke-linecap':'round'})));
   polys.forEach(p=>svg.appendChild(el('polygon',{points:p.points.map(q=>q.join(',')).join(' '),fill:p.fill})));
-  rects.forEach(r=>svg.appendChild(el('rect',{x:r.x,y:r.y,width:r.w,height:r.h,rx:r.rx,fill:r.fill})));
+  rects.forEach(r=>svg.appendChild(el('rect',{x:r.x,y:r.y,width:r.w,height:r.h,rx:r.rx,fill:r.fill,stroke:r.stroke||'none','stroke-width':r.sw||0})));
   texts.forEach(t=>svg.appendChild(txt(t.text,t.x,t.y,t.fill,t.size,t.weight,t.anchor)));
 
   const chart=document.getElementById('chart');chart.innerHTML="";chart.appendChild(svg);
@@ -370,45 +383,49 @@ function txt(s,x,y,fill,size,weight,anchor){const t=el('text',{x,y,fill,'font-si
 function spineAndEffect(lines,rects,texts,polys,spineRight){
   const fs=S.fs;
   const effect=document.getElementById('effect').value.trim()||"（特性）";
-  lines.push({x1:SPINE_LEFT,y1:0,x2:spineRight,y2:0,stroke:S.ink,w:3});
-  polys.push({points:[[spineRight,-8],[spineRight,8],[spineRight+14,0]],fill:S.ink});
-  const headW=150,headH=64;
-  rects.push({x:spineRight+14,y:-headH/2,w:headW,h:headH,rx:6,fill:S.effect});
-  const per=Math.max(1,Math.floor((headW-16)/(fs+2)));
+  lines.push({x1:SPINE_LEFT,y1:0,x2:spineRight,y2:0,stroke:S.ink,w:3.4});
+  polys.push({points:[[spineRight,-9],[spineRight,9],[spineRight+16,0]],fill:S.ink});
+  const ew=Math.max(150, measureW(effect,fs+3)+28);
+  const headW=Math.min(ew,220), headH=Math.max(58,(fs+3)*2.2);
+  const per=Math.max(1,Math.floor((headW-18)/(fs+3)));
   const wl=[];for(let i=0;i<effect.length;i+=per)wl.push(effect.substr(i,per));
-  const off=-(wl.length-1)*(fs+2)*0.6;
-  wl.forEach((ln,i)=>texts.push({x:spineRight+14+headW/2,y:off+i*(fs+2)*1.2+(fs+2)*0.35,text:ln,fill:S.bg,size:fs+2,weight:600,anchor:'middle'}));
+  const hh=Math.max(headH, wl.length*(fs+3)*1.25+18);
+  rects.push({x:spineRight+16,y:-hh/2,w:headW,h:hh,rx:7,fill:S.effect});
+  const off=-(wl.length-1)*(fs+3)*0.62;
+  wl.forEach((ln,i)=>texts.push({x:spineRight+16+headW/2,y:off+i*(fs+3)*1.25+(fs+3)*0.35,text:ln,fill:S.bg,size:fs+3,weight:700,anchor:'middle'}));
 }
 
 /* ============================================================
-   ①重なり防止レイアウト（実測＋領域割当＋直交コネクタ）
-      → 文字の重なり・線の交差が構造的に発生しない
+   重なり防止レイアウト v2
+   ・文字は縮小しない（箱を文字に合わせる）
+   ・子は扇状に伸ばして空間を使う（重なり・交差なし）
    ============================================================ */
 function buildClean(){
   const cats=collect();
   const lines=[],rects=[],texts=[],polys=[];
-  const hgap=Math.max(22,30*S.spread);   // 階層間の横間隔
-  const vgap=Math.max(7,11*S.spread);    // 兄弟間の縦間隔
-  const SPINE_GAP=Math.max(26,36*S.spread);
-  const CATGAP=Math.max(34,48*S.spread);
+  const hgap=Math.max(30,42*S.spread);   // 階層間の横間隔
+  const vgap=Math.max(11,17*S.spread);   // 兄弟間の縦間隔
+  const SPINE_GAP=Math.max(30,44*S.spread);
+  const CATGAP=Math.max(40,58*S.spread);
 
+  function clSize(d){ return d===0? S.fs+4 : (d===1? S.fs+1 : S.fs); } // 縮小しない
   function wrapText(text,size){
     const chars=[...String(text)];const out=[];let cur='';
     for(const ch of chars){const t=cur+ch;
       if(cur && measureW(t,size)>S.maxLabelW){out.push(cur);cur=ch;} else cur=t;}
     if(cur!=='')out.push(cur);if(!out.length)out.push('');
     let w=0;out.forEach(l=>w=Math.max(w,measureW(l,size)));
-    return {lines:out,w:Math.max(w,10),h:out.length*size*1.28};
+    return {lines:out,w:Math.max(w,12),h:out.length*size*1.26};
   }
   function prep(node,depth){
-    const size=sizeOfDepth(depth);node._size=size;node._box=wrapText(node.name,size);
+    const size=clSize(depth);node._size=size;node._box=wrapText(node.name,size);
     node.children.forEach(c=>prep(c,depth+1));
     if(node.children.length){
       let sum=0;node.children.forEach(c=>sum+=c._sh);sum+=vgap*(node.children.length-1);
-      node._sh=Math.max(node._box.h,sum);
+      node._sh=Math.max(node._box.h+6,sum);
       let mtw=0;node.children.forEach(c=>mtw=Math.max(mtw,c._tw));
       node._tw=node._box.w+hgap+mtw;
-    }else{node._sh=node._box.h;node._tw=node._box.w;}
+    }else{node._sh=node._box.h+6;node._tw=node._box.w;}
   }
   function place(node,depth,rightX,bandTop){
     node._x=rightX;node._y=bandTop+node._sh/2;
@@ -420,28 +437,29 @@ function buildClean(){
     }
   }
   function drawNode(node,depth,color,isRoot){
-    const tx=node._x,ty=node._y,n=node._box.lines.length,lh=node._size*1.28;
+    const tx=node._x,ty=node._y,n=node._box.lines.length,lh=node._size*1.26;
     if(isRoot){
-      const bw=node._box.w+16,bh=node._box.h+8;
-      rects.push({x:tx-bw,y:ty-bh/2,w:bw,h:bh,rx:5,fill:color});
-      node._box.lines.forEach((ln,i)=>texts.push({x:tx-8,y:ty-(n-1)/2*lh+i*lh+node._size*0.35,text:ln,fill:S.bg,size:node._size,weight:600,anchor:'end'}));
+      const bw=node._box.w+20,bh=node._box.h+12;
+      rects.push({x:tx-bw,y:ty-bh/2,w:bw,h:bh,rx:7,fill:color});
+      node._box.lines.forEach((ln,i)=>texts.push({x:tx-10,y:ty-(n-1)/2*lh+i*lh+node._size*0.36,text:ln,fill:S.bg,size:node._size,weight:700,anchor:'end'}));
     }else{
-      node._box.lines.forEach((ln,i)=>texts.push({x:tx,y:ty-(n-1)/2*lh+i*lh+node._size*0.35,text:ln,fill:S.ink,size:node._size,weight:400,anchor:'end'}));
+      // 薄い下線で骨との接続を明示（見やすさ）
+      node._box.lines.forEach((ln,i)=>texts.push({x:tx,y:ty-(n-1)/2*lh+i*lh+node._size*0.36,text:ln,fill:S.ink,size:node._size,weight:(depth===1?600:400),anchor:'end'}));
     }
     if(node.children.length){
-      const parentLeft=node._x-node._box.w-(isRoot?8:0);
-      const trunkX=node._x-node._box.w-hgap*0.5;
-      const w=Math.max(1,S.lw-(depth>1?0.4:0));
-      lines.push({x1:parentLeft,y1:node._y,x2:trunkX,y2:node._y,stroke:color,w});
+      // 親の左端から各子へ「直線の骨」を扇状に伸ばす（同一始点なので交差しない）
+      const originX=node._x-node._box.w-4;
+      const w0=Math.max(1.4,S.lw+(isRoot?0.8:0)-(depth>2?0.4:0));
       node.children.forEach(c=>{
-        lines.push({x1:trunkX,y1:node._y,x2:trunkX,y2:c._y,stroke:color,w});
-        lines.push({x1:trunkX,y1:c._y,x2:c._x,y2:c._y,stroke:color,w});
+        lines.push({x1:originX,y1:node._y,x2:c._x,y2:c._y,stroke:color,w:w0});
       });
       node.children.forEach(c=>drawNode(c,depth+1,color,false));
     }
   }
 
-  let cursor=SPINE_LEFT+50;
+  if(!cats.length){ spineAndEffect(lines,rects,texts,polys,SPINE_LEFT+520); render(lines,rects,texts,polys); return; }
+
+  let cursor=SPINE_LEFT+60;
   cats.forEach((cat,i)=>{
     prep(cat,0);
     const tw=cat._tw,th=cat._sh,top=(i%2===0),color=top?S.top:S.bot;
@@ -449,10 +467,10 @@ function buildClean(){
     const bandTop=top?-(SPINE_GAP+th):(SPINE_GAP);
     place(cat,0,rightX,bandTop);
     drawNode(cat,0,color,true);
-    // 背骨→大骨（区分ヘッド）へ接続（区分ごとに横領域を占有→交差しない）
+    // 背骨 → 大骨ヘッドへ（区分ごとに横領域を専有：交差しない）
     const cxb=rightX-cat._box.w/2;
-    const by=top?cat._y+cat._box.h/2+4:cat._y-cat._box.h/2-4;
-    lines.push({x1:cxb,y1:0,x2:cxb,y2:by,stroke:color,w:Math.max(2,S.lw+0.6)});
+    const by=top?cat._y+cat._box.h/2+6:cat._y-cat._box.h/2-6;
+    lines.push({x1:cxb,y1:0,x2:cxb,y2:by,stroke:color,w:Math.max(2.6,S.lw+1)});
     cursor=rightX+CATGAP;
   });
   const spineRight=Math.max(SPINE_LEFT+520,cursor);
@@ -460,26 +478,22 @@ function buildClean(){
   render(lines,rects,texts,polys);
 }
 
-/* ============================================================
-   ②従来レイアウト（斜め骨）
-   ============================================================ */
+/* ===== 従来レイアウト（斜め骨） ===== */
 function buildClassic(){
   const cats=collect();
   const fs=S.fs, spread=S.spread, lenScale=S.lenScale;
   const UNIT=26*spread;
   const lines=[],rects=[],texts=[],polys=[];
-
   function pushLabel(text,x,y,fill,size,weight,anchor,up){
     const maxc=size>=12?11:9;
     if(text.length<=maxc){texts.push({x,y,text,fill,size,weight,anchor});return;}
-    const lines2=[];for(let i=0;i<text.length;i+=maxc)lines2.push(text.substr(i,maxc));
+    const l2=[];for(let i=0;i<text.length;i+=maxc)l2.push(text.substr(i,maxc));
     const lh=size*1.2;
-    lines2.forEach((ln,i)=>{const yy=up? y-(lines2.length-1-i)*lh : y+i*lh;texts.push({x,y:yy,text:ln,fill,size,weight,anchor});});
+    l2.forEach((ln,i)=>{const yy=up? y-(l2.length-1-i)*lh : y+i*lh;texts.push({x,y:yy,text:ln,fill,size,weight,anchor});});
   }
   function layout(ax,ay,node,depth,color,catDir){
     const dir=(depth%2===0)?catDir:{x:-1,y:0};
-    const kids=node.children;
-    const weights=kids.map(leafCount);
+    const kids=node.children;const weights=kids.map(leafCount);
     const total=weights.reduce((a,b)=>a+b,0)||1;
     let boneLen=LEN[Math.min(depth,5)]*lenScale;
     if(kids.length)boneLen=Math.max(boneLen, total*UNIT + boneLen*0.35);
@@ -488,35 +502,28 @@ function buildClassic(){
     lines.push({x1:ax,y1:ay,x2:tx,y2:ty,stroke:color,w});
     const sz=sizeOfDepth(depth);
     if(depth===0){
-      const bw=Math.max(70,node.name.length*(sz+2)+16);
-      const up=dir.y<0;
+      const bw=Math.max(70,node.name.length*(sz+2)+16);const up=dir.y<0;
       rects.push({x:tx-bw/2,y:up?ty-30:ty,w:bw,h:28,rx:5,fill:color});
       texts.push({x:tx,y:(up?ty-30:ty)+19,text:node.name,fill:S.bg,size:sz,weight:600,anchor:'middle'});
     }else{
-      const anchor=dir.x<0?'end':'start';
-      const lx=dir.x<0?tx-5:tx+5;
+      const anchor=dir.x<0?'end':'start';const lx=dir.x<0?tx-5:tx+5;
       const ly=ty+(dir.y<0?-4:(dir.y>0?14:-4));
       pushLabel(node.name,lx,ly,S.ink,sz,400,anchor,dir.y<=0);
     }
     let cum=0;
-    kids.forEach((k,ki)=>{
-      const center=(cum+weights[ki]/2)/total; cum+=weights[ki];
-      const t=0.26+0.66*center;
-      const cx=ax+(tx-ax)*t, cy=ay+(ty-ay)*t;
-      layout(cx,cy,k,depth+1,color,catDir);
-    });
+    kids.forEach((k,ki)=>{const center=(cum+weights[ki]/2)/total;cum+=weights[ki];
+      const t=0.26+0.66*center;const cx=ax+(tx-ax)*t, cy=ay+(ty-ay)*t;
+      layout(cx,cy,k,depth+1,color,catDir);});
   }
-  const catW=cats.map(leafCount);
-  const catTotal=catW.reduce((a,b)=>a+b,0)||1;
+  const catW=cats.map(leafCount);const catTotal=catW.reduce((a,b)=>a+b,0)||1;
   const spineUsable=Math.max(520, catTotal*34*spread, cats.length*150*spread);
   const spineRight=SPINE_LEFT+spineUsable;
   spineAndEffect(lines,rects,texts,polys,spineRight);
   let cum=0;
   cats.forEach((cat,i)=>{
-    const center=(cum+catW[i]/2)/catTotal; cum+=catW[i];
+    const center=(cum+catW[i]/2)/catTotal;cum+=catW[i];
     const ax=SPINE_LEFT+spineUsable*(0.06+0.88*center);
-    const top=i%2===0;
-    const catDir=top?norm(-0.5,-1):norm(-0.5,1);
+    const top=i%2===0;const catDir=top?norm(-0.5,-1):norm(-0.5,1);
     layout(ax,0,cat,0,top?S.top:S.bot,catDir);
   });
   render(lines,rects,texts,polys);
@@ -540,7 +547,7 @@ document.getElementById('draw').onclick=draw;
 draw();
 
 /* ============================================================
-   保存・履歴管理（クラウド優先／未設定時ローカル）
+   保存・履歴管理
    ============================================================ */
 const CLOUD = ()=>!!(GAS_URL && GAS_URL.trim());
 const LKEY  = 'qc_fishbone_saves_v1';
@@ -555,24 +562,16 @@ async function api(action, payload){
 }
 function localAll(){try{return JSON.parse(localStorage.getItem(LKEY))||[];}catch(e){return[];}}
 function localPut(arr){localStorage.setItem(LKEY, JSON.stringify(arr));}
-
 const store = {
-  async list(){
-    if(CLOUD()) return (await api('list')).records||[];
-    return localAll().map(r=>({id:r.id,title:r.title,dept:r.dept,name:r.name,created:r.created,modified:r.modified,lastAccess:r.lastAccess}));
-  },
-  async get(id){
-    if(CLOUD()) return (await api('get',{id})).record;
-    return localAll().find(x=>x.id===id)||null;
-  },
-  async save(rec){
-    if(CLOUD()){ const r=await api('save',{record:rec}); rec.id=r.id; return rec; }
+  async list(){ if(CLOUD()) return (await api('list')).records||[];
+    return localAll().map(r=>({id:r.id,title:r.title,dept:r.dept,name:r.name,created:r.created,modified:r.modified,lastAccess:r.lastAccess})); },
+  async get(id){ if(CLOUD()) return (await api('get',{id})).record; return localAll().find(x=>x.id===id)||null; },
+  async save(rec){ if(CLOUD()){ const r=await api('save',{record:rec}); rec.id=r.id; return rec; }
     const arr=localAll(); const now=new Date().toISOString();
     if(rec.id){ const t=arr.find(x=>x.id===rec.id);
       if(t){t.title=rec.title;t.dept=rec.dept;t.name=rec.name;t.modified=now;t.lastAccess=now;t.state=rec.state;localPut(arr);return t;} }
     rec.id='f'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
-    rec.created=now;rec.modified=now;rec.lastAccess=now;arr.push(rec);localPut(arr);return rec;
-  },
+    rec.created=now;rec.modified=now;rec.lastAccess=now;arr.push(rec);localPut(arr);return rec; },
   async del(id){ if(CLOUD()){await api('delete',{id});return;} localPut(localAll().filter(x=>x.id!==id)); },
   async delAll(){ if(CLOUD()){await api('deleteAll');return;} localPut([]); },
   async exportAll(){ if(CLOUD()) return (await api('export')).records||[]; return localAll(); }
@@ -609,18 +608,27 @@ function readMeta(){return{
   title:document.getElementById('m_title').value.trim(),
   dept:document.getElementById('m_dept').value.trim(),
   name:document.getElementById('m_name').value.trim()};}
+
 function reflectEditing(){
-  const b=document.getElementById('saveOver'), lbl=document.getElementById('editingLabel');
-  if(editingId){b.disabled=false;lbl.textContent='編集中：'+(document.getElementById('m_title').value.trim()||'（保存済みデータ）');}
-  else{b.disabled=true;lbl.textContent='';}
+  const title=document.getElementById('m_title').value.trim();
+  const b=document.getElementById('saveOver'); if(b)b.disabled=!editingId;
+  const st=document.getElementById('editState');
+  if(st)st.textContent= editingId ? ('編集中：'+(title||'保存済みデータ')) : '新規作成';
+  const el2=document.getElementById('editingLabel2');
+  if(el2)el2.textContent= editingId ? ('上書き対象：'+(title||'保存済みデータ')) : '新規データとして保存されます。';
 }
+document.getElementById('m_title').addEventListener('input',reflectEditing);
+
+/* モーダル */
+function openSaveModal(){reflectEditing();document.getElementById('saveModal').classList.add('show');document.getElementById('m_title').focus();}
+function closeSaveModal(){document.getElementById('saveModal').classList.remove('show');}
 
 async function saveNew(){
   const m=readMeta();
   if(!m.title){alert('タイトルを入力してください。');document.getElementById('m_title').focus();return;}
   try{
     const saved=await store.save({title:m.title,dept:m.dept,name:m.name,state:getState()});
-    editingId=saved.id;reflectEditing();refreshCount();
+    editingId=saved.id;reflectEditing();refreshCount();closeSaveModal();
     toast('「'+m.title+'」を新規保存しました。');
   }catch(e){alert('保存に失敗しました：'+e.message);}
 }
@@ -630,16 +638,19 @@ async function saveOver(){
   if(!m.title){alert('タイトルを入力してください。');return;}
   try{
     await store.save({id:editingId,title:m.title,dept:m.dept,name:m.name,state:getState()});
-    reflectEditing();toast('「'+m.title+'」を上書き更新しました。');
+    reflectEditing();closeSaveModal();toast('「'+m.title+'」を上書き更新しました。');
   }catch(e){alert('更新に失敗しました：'+e.message);}
 }
-function clearEdit(){
+function newDiagram(){
+  const has=[...tbody.querySelectorAll('tr')].some(tr=>[...tr.querySelectorAll('.cell')].some(i=>i.value.trim()));
+  if(has && !confirm('現在の内容を破棄して新規作成しますか？（未保存の変更は失われます）'))return;
   editingId=null;
   document.getElementById('m_title').value='';
   document.getElementById('m_dept').value='';
   document.getElementById('m_name').value='';
-  reflectEditing();
-  toast('新規作成モードにしました（保存すると別データになります）。');
+  document.getElementById('effect').value='';
+  tbody.innerHTML='';PRESETS['医療4M'].forEach(c=>addRow([c]));
+  reflectEditing();draw();toast('新規作成しました。');
 }
 
 async function openRecord(id){
@@ -654,11 +665,9 @@ async function openRecord(id){
   }catch(e){alert('読込に失敗しました：'+e.message);}
 }
 async function dupRecord(id){
-  try{
-    const r=await store.get(id);if(!r)return;
+  try{const r=await store.get(id);if(!r)return;
     await store.save({title:(r.title||'無題')+'（複製）',dept:r.dept,name:r.name,state:r.state});
-    renderList();
-  }catch(e){alert('複製に失敗しました：'+e.message);}
+    renderList();}catch(e){alert('複製に失敗しました：'+e.message);}
 }
 async function delRecord(id,title){
   if(!confirm('「'+(title||'')+'」を削除しますか？'))return;
@@ -683,8 +692,7 @@ function importFile(file){
   const rd=new FileReader();
   rd.onload=async()=>{try{
     let data=JSON.parse(rd.result);if(!Array.isArray(data))data=[data];
-    let n=0;
-    for(const d of data){ if(d&&d.state){ await store.save({title:d.title,dept:d.dept,name:d.name,state:d.state}); n++; } }
+    let n=0;for(const d of data){ if(d&&d.state){ await store.save({title:d.title,dept:d.dept,name:d.name,state:d.state}); n++; } }
     renderList();toast(n+'件を取り込みました。');
   }catch(e){alert('読み込みに失敗しました：'+e.message);}};
   rd.readAsText(file);
@@ -699,7 +707,7 @@ async function renderList(){
   arr.sort((a,b)=>(b.modified||'').localeCompare(a.modified||''));
   document.getElementById('cnt').textContent=arr.length;
   if(!arr.length){
-    tb.innerHTML='<tr><td colspan="7" class="empty">保存データはありません。編集画面でタイトルを入力し「新規保存」してください。</td></tr>';
+    tb.innerHTML='<tr><td colspan="7" class="empty">保存データはありません。編集画面で「保存」してください。</td></tr>';
     document.getElementById('listHint').textContent='';return;
   }
   tb.innerHTML='';
@@ -724,8 +732,8 @@ async function renderList(){
     tb.appendChild(tr);
   });
   document.getElementById('listHint').innerHTML= CLOUD()
-    ? '※ データはスプレッドシートに保存され、全員で共有されます。最終アクセスから3年経過したデータは自動削除の対象です（開けば期限が更新されます）。'
-    : '※ 現在は<b>このブラウザ内</b>に保存中。全員共有にはGAS_URLの設定が必要です。';
+    ? '※ データはスプレッドシートに保存され全員で共有されます。最終アクセスから3年経過したデータは自動削除の対象です（開けば期限が更新されます）。'
+    : '※ 現在は<b>このブラウザ内</b>に保存中。';
 }
 async function refreshCount(){ try{const arr=await store.list();document.getElementById('cnt').textContent=arr.length;}catch(e){} }
 function setCloudStatus(){
@@ -748,9 +756,12 @@ function toast(msg){let t=document.getElementById('toast');
   t.textContent=msg;t.style.opacity='1';clearTimeout(toastTimer);
   toastTimer=setTimeout(()=>t.style.opacity='0',2200);}
 
+document.getElementById('newDiagram').onclick=newDiagram;
+document.getElementById('openSave').onclick=openSaveModal;
+document.getElementById('saveCancel').onclick=closeSaveModal;
+document.getElementById('saveModal').addEventListener('click',e=>{if(e.target.id==='saveModal')closeSaveModal();});
 document.getElementById('saveNew').onclick=saveNew;
 document.getElementById('saveOver').onclick=saveOver;
-document.getElementById('clearEdit').onclick=clearEdit;
 document.getElementById('navEdit').onclick=()=>showScreen('edit');
 document.getElementById('navList').onclick=()=>showScreen('list');
 document.getElementById('backEdit').onclick=()=>showScreen('edit');
@@ -760,8 +771,7 @@ document.getElementById('delAllBtn').onclick=delAll;
 document.getElementById('impBtn').onclick=()=>document.getElementById('impFile').click();
 document.getElementById('impFile').onchange=e=>{if(e.target.files[0])importFile(e.target.files[0]);e.target.value='';};
 
-setCloudStatus();
-refreshCount();
+setCloudStatus();refreshCount();reflectEditing();
 </script>
 </body>
 </html>
