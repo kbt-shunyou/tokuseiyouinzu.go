@@ -66,7 +66,7 @@
   .fld select,.fld input[type=range]{width:100%;}
   .fld select{padding:6px;border:1px solid var(--line);border-radius:6px;font-size:13px;}
   .rangeval{font-weight:600;color:var(--accent);}
-  .switch{grid-column:1/-1;background:#eef7f1;border:1px solid #bfe3cd;border-radius:8px;padding:9px 11px;}
+  .switch{grid-column:1/-1;background:#eef7f1;border:1px solid #bfe3cd;border-radius:8px;padding:8px 11px;}
   .switch label{display:flex;align-items:center;gap:9px;cursor:pointer;color:#256b45;font-weight:600;font-size:12.5px;}
   .switch input{width:auto;}
   .hint{font-size:11px;color:var(--sub);margin-top:8px;line-height:1.7;}
@@ -82,7 +82,6 @@
   table.listtbl .mini:hover{border-color:var(--accent);color:var(--accent);}
   table.listtbl .mini.del:hover{border-color:#c53030;color:#c53030;}
   .empty{padding:26px;text-align:center;color:var(--sub);font-size:13px;}
-  /* モーダル */
   .modal{display:none;position:fixed;inset:0;background:rgba(15,23,32,.5);z-index:80;align-items:center;justify-content:center;padding:16px;}
   .modal.show{display:flex;}
   .modalcard{background:#fff;border-radius:12px;padding:20px;width:480px;max-width:100%;box-shadow:0 12px 40px rgba(0,0,0,.3);}
@@ -95,7 +94,7 @@
   <div class="hbar">
     <div>
       <h1>特性要因図 自動生成ツール</h1>
-      <p>QC7つ道具 — 文字を大きく保ったまま重なり・交差を防止。作成日・変更日・部署・氏名・設定をクラウド保存。</p>
+      <p>QC7つ道具 — 従来の斜め骨レイアウトのまま、間隔を自動確保して重なり・交差を防止。1画面に収めて空間を活用。</p>
       <div class="cloudstat" id="cloudStat">保存先を確認中…</div>
     </div>
     <nav class="topnav">
@@ -144,20 +143,22 @@
         <div class="grid2">
           <div class="switch">
             <label><input type="checkbox" id="cleanMode" checked>
-              重なり防止レイアウト（文字を大きく保ち、重なり・交差を防止）</label>
+              重なり防止（間隔を自動確保。斜め骨の見た目は維持）</label>
           </div>
-          <div class="fld"><label>枝の間隔 <span class="rangeval" id="v_spread">1.1</span></label>
-            <input type="range" id="spread" min="0.6" max="2.6" step="0.1" value="1.1"></div>
-          <div class="fld"><label>文字サイズ <span class="rangeval" id="v_fs">15</span></label>
-            <input type="range" id="fs" min="11" max="24" value="15"></div>
-          <div class="fld"><label>折り返し幅（長い時のみ）<span class="rangeval" id="v_mw">240</span></label>
-            <input type="range" id="maxLabelW" min="120" max="420" step="20" value="240"></div>
-          <div class="fld"><label>線の太さ <span class="rangeval" id="v_lw">1.8</span></label>
-            <input type="range" id="lw" min="1" max="4" step="0.2" value="1.8"></div>
-          <div class="fld"><label>骨の長さ（従来レイアウト用）<span class="rangeval" id="v_len">1.0</span></label>
+          <div class="switch" style="background:#eef3f8;border-color:#bcd4ec;">
+            <label style="color:#245b8c;"><input type="checkbox" id="fitScreen" checked>
+              1画面に収める（自動縮小して全体表示）</label>
+          </div>
+          <div class="fld"><label>枝の間隔 <span class="rangeval" id="v_spread">1.0</span></label>
+            <input type="range" id="spread" min="0.6" max="2.4" step="0.1" value="1.0"></div>
+          <div class="fld"><label>文字サイズ <span class="rangeval" id="v_fs">13</span></label>
+            <input type="range" id="fs" min="9" max="20" value="13"></div>
+          <div class="fld"><label>骨の長さ <span class="rangeval" id="v_len">1.0</span></label>
             <input type="range" id="lenScale" min="0.7" max="1.8" step="0.1" value="1.0"></div>
+          <div class="fld"><label>線の太さ <span class="rangeval" id="v_lw">1.4</span></label>
+            <input type="range" id="lw" min="1" max="4" step="0.2" value="1.4"></div>
         </div>
-        <p class="hint" style="margin-top:6px;">文字は縮小せず箱いっぱいに表示します。図が横に広い場合は「折り返し幅」を下げると長いラベルだけ折り返して縦に収まります。従来の斜め骨に戻すにはチェックを外してください。</p>
+        <p class="hint" style="margin-top:6px;">要因が増えると横ではなく<b>縦方向にも展開</b>して詰まりを防ぎます。「枝の間隔」で余白の広さを調整。図は「1画面に収める」で自動縮小され、PNGは原寸で保存されます。</p>
       </div>
     </details>
 
@@ -247,7 +248,7 @@
       <div style="flex:1"></div>
       <button class="btn btn-add" id="saveCancel">キャンセル</button>
     </div>
-    <p class="hint">タイトルは必須です。「上書き更新」は、保存一覧から開いたデータを編集しているときに有効になります。</p>
+    <p class="hint">タイトルは必須です。「上書き更新」は保存一覧から開いたデータを編集中のときに有効です。</p>
   </div>
 </div>
 
@@ -269,7 +270,7 @@ const THEMES={
   "ポップ（緑×桃）":{effect:"#2f855a",bg:"#fffdf7",top:"#38a169",bot:"#d53f8c",ink:"#2d3748"}
 };
 const S={effect:"#1f2933",bg:"#ffffff",top:"#2b6cb0",bot:"#c05621",ink:"#1f2933",
-  font:'"Hiragino Kaku Gothic ProN","Meiryo",sans-serif',fs:15,lw:1.8,spread:1.1,lenScale:1.0,maxLabelW:240,clean:true};
+  font:'"Hiragino Kaku Gothic ProN","Meiryo",sans-serif',fs:13,lw:1.4,spread:1.0,lenScale:1.0,clean:true,fit:true};
 const LEN=[150,116,80,64,52,44];
 const SPINE_LEFT=170;
 const _mc=document.createElement('canvas').getContext('2d');
@@ -328,8 +329,8 @@ document.getElementById('fs').addEventListener('input',e=>{S.fs=+e.target.value;
 document.getElementById('lw').addEventListener('input',e=>{S.lw=+e.target.value;v_lw.textContent=e.target.value;draw();});
 document.getElementById('spread').addEventListener('input',e=>{S.spread=+e.target.value;v_spread.textContent=e.target.value;draw();});
 document.getElementById('lenScale').addEventListener('input',e=>{S.lenScale=+e.target.value;v_len.textContent=e.target.value;draw();});
-document.getElementById('maxLabelW').addEventListener('input',e=>{S.maxLabelW=+e.target.value;v_mw.textContent=e.target.value;draw();});
 document.getElementById('cleanMode').addEventListener('change',e=>{S.clean=e.target.checked;draw();});
+document.getElementById('fitScreen').addEventListener('change',e=>{S.fit=e.target.checked;draw();});
 
 function collect(){
   const rows=[...tbody.querySelectorAll('tr')];
@@ -361,18 +362,20 @@ function render(lines,rects,texts,polys){
   lines.forEach(l=>{ext(l.x1,l.y1);ext(l.x2,l.y2);});
   rects.forEach(r=>{ext(r.x,r.y);ext(r.x+r.w,r.y+r.h);});
   polys.forEach(p=>p.points.forEach(pt=>ext(pt[0],pt[1])));
-  texts.forEach(t=>{const ww=t.text.length*t.size*1.0;let x0,x1;
+  texts.forEach(t=>{const ww=t.text.length*t.size*0.95;let x0,x1;
     if(t.anchor==='end'){x1=t.x;x0=t.x-ww;}else if(t.anchor==='start'){x0=t.x;x1=t.x+ww;}else{x0=t.x-ww/2;x1=t.x+ww/2;}
     ext(x0,t.y-t.size);ext(x1,t.y+4);});
-  const pad=40;
+  const pad=36;
   const vbX=minX-pad,vbY=minY-pad,vbW=(maxX-minX)+pad*2,vbH=(maxY-minY)+pad*2;
 
   const svg=el('svg',{viewBox:vbX+' '+vbY+' '+vbW+' '+vbH,width:Math.round(vbW),height:Math.round(vbH),id:'fb'});
-  svg.style.fontFamily=S.font;svg.style.maxWidth='none';
+  svg.style.fontFamily=S.font;
+  if(S.fit){svg.style.maxWidth='100%';svg.style.maxHeight='78vh';}
+  else{svg.style.maxWidth='none';}
   svg.appendChild(el('rect',{x:vbX,y:vbY,width:vbW,height:vbH,fill:S.bg}));
   lines.forEach(l=>svg.appendChild(el('line',{x1:l.x1,y1:l.y1,x2:l.x2,y2:l.y2,stroke:l.stroke,'stroke-width':l.w,'stroke-linecap':'round'})));
   polys.forEach(p=>svg.appendChild(el('polygon',{points:p.points.map(q=>q.join(',')).join(' '),fill:p.fill})));
-  rects.forEach(r=>svg.appendChild(el('rect',{x:r.x,y:r.y,width:r.w,height:r.h,rx:r.rx,fill:r.fill,stroke:r.stroke||'none','stroke-width':r.sw||0})));
+  rects.forEach(r=>svg.appendChild(el('rect',{x:r.x,y:r.y,width:r.w,height:r.h,rx:r.rx,fill:r.fill})));
   texts.forEach(t=>svg.appendChild(txt(t.text,t.x,t.y,t.fill,t.size,t.weight,t.anchor)));
 
   const chart=document.getElementById('chart');chart.innerHTML="";chart.appendChild(svg);
@@ -383,103 +386,116 @@ function txt(s,x,y,fill,size,weight,anchor){const t=el('text',{x,y,fill,'font-si
 function spineAndEffect(lines,rects,texts,polys,spineRight){
   const fs=S.fs;
   const effect=document.getElementById('effect').value.trim()||"（特性）";
-  lines.push({x1:SPINE_LEFT,y1:0,x2:spineRight,y2:0,stroke:S.ink,w:3.4});
-  polys.push({points:[[spineRight,-9],[spineRight,9],[spineRight+16,0]],fill:S.ink});
-  const ew=Math.max(150, measureW(effect,fs+3)+28);
-  const headW=Math.min(ew,220), headH=Math.max(58,(fs+3)*2.2);
-  const per=Math.max(1,Math.floor((headW-18)/(fs+3)));
+  lines.push({x1:SPINE_LEFT,y1:0,x2:spineRight,y2:0,stroke:S.ink,w:3});
+  polys.push({points:[[spineRight,-8],[spineRight,8],[spineRight+14,0]],fill:S.ink});
+  const headW=150,headH=64;
+  rects.push({x:spineRight+14,y:-headH/2,w:headW,h:headH,rx:6,fill:S.effect});
+  const per=Math.max(1,Math.floor((headW-16)/(fs+2)));
   const wl=[];for(let i=0;i<effect.length;i+=per)wl.push(effect.substr(i,per));
-  const hh=Math.max(headH, wl.length*(fs+3)*1.25+18);
-  rects.push({x:spineRight+16,y:-hh/2,w:headW,h:hh,rx:7,fill:S.effect});
-  const off=-(wl.length-1)*(fs+3)*0.62;
-  wl.forEach((ln,i)=>texts.push({x:spineRight+16+headW/2,y:off+i*(fs+3)*1.25+(fs+3)*0.35,text:ln,fill:S.bg,size:fs+3,weight:700,anchor:'middle'}));
+  const off=-(wl.length-1)*(fs+2)*0.6;
+  wl.forEach((ln,i)=>texts.push({x:spineRight+14+headW/2,y:off+i*(fs+2)*1.2+(fs+2)*0.35,text:ln,fill:S.bg,size:fs+2,weight:600,anchor:'middle'}));
 }
 
 /* ============================================================
-   重なり防止レイアウト v2
-   ・文字は縮小しない（箱を文字に合わせる）
-   ・子は扇状に伸ばして空間を使う（重なり・交差なし）
+   斜め骨レイアウト（原型維持）＋ 実測間隔で重なり/交差を防止
+   ・各サブツリーの縦/横フットプリントを実測
+   ・親骨に沿って、子を実測サイズ分だけ離して配置
+   ・要因が増えると縦にも展開（横長を抑制）
    ============================================================ */
-function buildClean(){
+function buildFishbone(){
   const cats=collect();
   const lines=[],rects=[],texts=[],polys=[];
-  const hgap=Math.max(30,42*S.spread);   // 階層間の横間隔
-  const vgap=Math.max(11,17*S.spread);   // 兄弟間の縦間隔
-  const SPINE_GAP=Math.max(30,44*S.spread);
-  const CATGAP=Math.max(40,58*S.spread);
+  const gap=Math.max(9,13*S.spread);
 
-  function clSize(d){ return d===0? S.fs+4 : (d===1? S.fs+1 : S.fs); } // 縮小しない
-  function wrapText(text,size){
-    const chars=[...String(text)];const out=[];let cur='';
-    for(const ch of chars){const t=cur+ch;
-      if(cur && measureW(t,size)>S.maxLabelW){out.push(cur);cur=ch;} else cur=t;}
-    if(cur!=='')out.push(cur);if(!out.length)out.push('');
+  function wrapOrig(text,size){
+    const maxc=size>=12?11:9;const out=[];
+    for(let i=0;i<text.length;i+=maxc)out.push(text.substr(i,maxc));
+    if(!out.length)out.push('');
     let w=0;out.forEach(l=>w=Math.max(w,measureW(l,size)));
-    return {lines:out,w:Math.max(w,12),h:out.length*size*1.26};
+    return {lines:out,w:Math.max(w,10),h:out.length*size*1.2};
   }
+  // 各ノードの縦(_v)・横(_h)フットプリントを実測
   function prep(node,depth){
-    const size=clSize(depth);node._size=size;node._box=wrapText(node.name,size);
-    node.children.forEach(c=>prep(c,depth+1));
-    if(node.children.length){
-      let sum=0;node.children.forEach(c=>sum+=c._sh);sum+=vgap*(node.children.length-1);
-      node._sh=Math.max(node._box.h+6,sum);
-      let mtw=0;node.children.forEach(c=>mtw=Math.max(mtw,c._tw));
-      node._tw=node._box.w+hgap+mtw;
-    }else{node._sh=node._box.h+6;node._tw=node._box.w;}
-  }
-  function place(node,depth,rightX,bandTop){
-    node._x=rightX;node._y=bandTop+node._sh/2;
-    if(node.children.length){
-      const childRight=rightX-node._box.w-hgap;
-      let ct=0;node.children.forEach(c=>ct+=c._sh);ct+=vgap*(node.children.length-1);
-      let y=bandTop+(node._sh-ct)/2;
-      node.children.forEach(c=>{place(c,depth+1,childRight,y);y+=c._sh+vgap;});
+    const size=sizeOfDepth(depth);node._size=size;node._box=wrapOrig(node.name,size);
+    const kids=node.children;kids.forEach(c=>prep(c,depth+1));
+    if(!kids.length){node._v=node._box.h+gap*0.5;node._h=node._box.w+gap*0.5;return;}
+    if(depth%2===0){ // 親骨が斜め → 子は縦に積む
+      let s=0;kids.forEach(c=>s+=c._v);s+=gap*(kids.length-1);
+      node._v=Math.max(node._box.h,s);
+      let m=0;kids.forEach(c=>m=Math.max(m,c._h));
+      node._h=node._box.w+m+gap;
+    }else{ // 親骨が水平 → 子は横に並べる
+      let s=0;kids.forEach(c=>s+=c._h);s+=gap*(kids.length-1);
+      node._h=Math.max(node._box.w,s);
+      let m=0;kids.forEach(c=>m=Math.max(m,c._v));
+      node._v=node._box.h+m+gap;
     }
   }
-  function drawNode(node,depth,color,isRoot){
-    const tx=node._x,ty=node._y,n=node._box.lines.length,lh=node._size*1.26;
-    if(isRoot){
-      const bw=node._box.w+20,bh=node._box.h+12;
-      rects.push({x:tx-bw,y:ty-bh/2,w:bw,h:bh,rx:7,fill:color});
-      node._box.lines.forEach((ln,i)=>texts.push({x:tx-10,y:ty-(n-1)/2*lh+i*lh+node._size*0.36,text:ln,fill:S.bg,size:node._size,weight:700,anchor:'end'}));
+  function pushLabel(text,x,y,fill,size,weight,anchor,up){
+    const maxc=size>=12?11:9;
+    if(text.length<=maxc){texts.push({x,y,text,fill,size,weight,anchor});return;}
+    const l2=[];for(let i=0;i<text.length;i+=maxc)l2.push(text.substr(i,maxc));
+    const lh=size*1.2;
+    l2.forEach((ln,i)=>{const yy=up? y-(l2.length-1-i)*lh : y+i*lh;texts.push({x,y:yy,text:ln,fill,size,weight,anchor});});
+  }
+  function layout(ax,ay,node,depth,color,catDir){
+    const dir=(depth%2===0)?catDir:{x:-1,y:0};
+    const kids=node.children;
+    const horiz=Math.abs(dir.x)>=Math.abs(dir.y);
+    const along=c=>(horiz? c._h : c._v);               // 親骨に沿った必要サイズ
+    const comp=Math.max(0.4, horiz?Math.abs(dir.x):Math.abs(dir.y)); // 軸→骨方向の変換
+    let block=0;kids.forEach(c=>block+=along(c));block+=gap*Math.max(0,kids.length-1);
+    const base=LEN[Math.min(depth,5)]*S.lenScale;
+    const startOffset=Math.max(20,base*0.38), endMargin=Math.max(12,base*0.18);
+    const boneLen=Math.max(base, startOffset+block/comp+endMargin);
+    const tx=ax+dir.x*boneLen, ty=ay+dir.y*boneLen;
+    const w=depth===0?Math.max(2,S.lw+1):Math.max(1,S.lw-(depth>2?0.4:0));
+    lines.push({x1:ax,y1:ay,x2:tx,y2:ty,stroke:color,w});
+    const sz=node._size;
+    if(depth===0){
+      const bw=Math.max(70,node._box.w+18);const up=dir.y<0;
+      rects.push({x:tx-bw/2,y:up?ty-30:ty,w:bw,h:28,rx:5,fill:color});
+      texts.push({x:tx,y:(up?ty-30:ty)+19,text:node.name,fill:S.bg,size:sz,weight:600,anchor:'middle'});
     }else{
-      // 薄い下線で骨との接続を明示（見やすさ）
-      node._box.lines.forEach((ln,i)=>texts.push({x:tx,y:ty-(n-1)/2*lh+i*lh+node._size*0.36,text:ln,fill:S.ink,size:node._size,weight:(depth===1?600:400),anchor:'end'}));
+      const anchor=dir.x<0?'end':'start';const lx=dir.x<0?tx-5:tx+5;
+      const ly=ty+(dir.y<0?-4:(dir.y>0?14:-4));
+      pushLabel(node.name,lx,ly,S.ink,sz,400,anchor,dir.y<=0);
     }
-    if(node.children.length){
-      // 親の左端から各子へ「直線の骨」を扇状に伸ばす（同一始点なので交差しない）
-      const originX=node._x-node._box.w-4;
-      const w0=Math.max(1.4,S.lw+(isRoot?0.8:0)-(depth>2?0.4:0));
-      node.children.forEach(c=>{
-        lines.push({x1:originX,y1:node._y,x2:c._x,y2:c._y,stroke:color,w:w0});
-      });
-      node.children.forEach(c=>drawNode(c,depth+1,color,false));
-    }
+    let cum=startOffset;
+    kids.forEach(c=>{
+      const cs=along(c)/comp;
+      const dist=cum+cs/2;
+      const cx=ax+dir.x*dist, cy=ay+dir.y*dist;
+      layout(cx,cy,c,depth+1,color,catDir);
+      cum+=cs+gap/comp;
+    });
   }
 
   if(!cats.length){ spineAndEffect(lines,rects,texts,polys,SPINE_LEFT+520); render(lines,rects,texts,polys); return; }
 
-  let cursor=SPINE_LEFT+60;
+  cats.forEach(c=>prep(c,0));
+  const catGap=Math.max(30,42*S.spread);
+  const catExt=cat=>cat._h + LEN[0]*S.lenScale*0.45 + 40;   // 区分が左上へ伸びる水平の広がり
+  let leftEdge=SPINE_LEFT+40;
+  const attach=[];
   cats.forEach((cat,i)=>{
-    prep(cat,0);
-    const tw=cat._tw,th=cat._sh,top=(i%2===0),color=top?S.top:S.bot;
-    const rightX=cursor+tw;
-    const bandTop=top?-(SPINE_GAP+th):(SPINE_GAP);
-    place(cat,0,rightX,bandTop);
-    drawNode(cat,0,color,true);
-    // 背骨 → 大骨ヘッドへ（区分ごとに横領域を専有：交差しない）
-    const cxb=rightX-cat._box.w/2;
-    const by=top?cat._y+cat._box.h/2+6:cat._y-cat._box.h/2-6;
-    lines.push({x1:cxb,y1:0,x2:cxb,y2:by,stroke:color,w:Math.max(2.6,S.lw+1)});
-    cursor=rightX+CATGAP;
+    const ext=catExt(cat);
+    const ax=leftEdge+ext;
+    attach.push({cat,ax,top:(i%2===0)});
+    leftEdge=ax+catGap;
   });
-  const spineRight=Math.max(SPINE_LEFT+520,cursor);
+  const spineRight=Math.max(SPINE_LEFT+520, leftEdge+30);
   spineAndEffect(lines,rects,texts,polys,spineRight);
+  attach.forEach(a=>{
+    const color=a.top?S.top:S.bot;
+    const catDir=a.top?norm(-0.5,-1):norm(-0.5,1);
+    layout(a.ax,0,a.cat,0,color,catDir);
+  });
   render(lines,rects,texts,polys);
 }
 
-/* ===== 従来レイアウト（斜め骨） ===== */
-function buildClassic(){
+/* ===== 原型（間隔自動確保なし。詰めたい人向け） ===== */
+function buildClassicRaw(){
   const cats=collect();
   const fs=S.fs, spread=S.spread, lenScale=S.lenScale;
   const UNIT=26*spread;
@@ -529,10 +545,10 @@ function buildClassic(){
   render(lines,rects,texts,polys);
 }
 
-function draw(){ if(S.clean) buildClean(); else buildClassic(); }
+function draw(){ if(S.clean) buildFishbone(); else buildClassicRaw(); }
 
 document.getElementById('png').onclick=()=>{
-  if(!document.getElementById('fb'))draw();
+  const fitPrev=S.fit;S.fit=false;draw();
   const s=document.getElementById('fb');
   const xml=new XMLSerializer().serializeToString(s);
   const vb=s.getAttribute('viewBox').split(' ').map(Number);
@@ -540,7 +556,8 @@ document.getElementById('png').onclick=()=>{
   const url=URL.createObjectURL(new Blob([xml],{type:'image/svg+xml;charset=utf-8'}));
   img.onload=()=>{const cv=document.createElement('canvas');cv.width=vb[2]*scale;cv.height=vb[3]*scale;
     const ctx=cv.getContext('2d');ctx.scale(scale,scale);ctx.drawImage(img,0,0);URL.revokeObjectURL(url);
-    const a=document.createElement('a');a.download=(document.getElementById('m_title').value.trim()||'特性要因図')+'.png';a.href=cv.toDataURL('image/png');a.click();};
+    const a=document.createElement('a');a.download=(document.getElementById('m_title').value.trim()||'特性要因図')+'.png';a.href=cv.toDataURL('image/png');a.click();
+    S.fit=fitPrev;draw();};
   img.src=url;
 };
 document.getElementById('draw').onclick=draw;
@@ -586,22 +603,22 @@ function getState(){
     .map(tr=>[...tr.querySelectorAll('.cell')].map(i=>i.value))
     .filter(r=>r.some(v=>v.trim()!==''));
   return {effect:document.getElementById('effect').value,rows,
-    style:{effect:S.effect,bg:S.bg,top:S.top,bot:S.bot,ink:S.ink,font:S.font,fs:S.fs,lw:S.lw,spread:S.spread,lenScale:S.lenScale,maxLabelW:S.maxLabelW,clean:S.clean}};
+    style:{effect:S.effect,bg:S.bg,top:S.top,bot:S.bot,ink:S.ink,font:S.font,fs:S.fs,lw:S.lw,spread:S.spread,lenScale:S.lenScale,clean:S.clean,fit:S.fit}};
 }
 function setState(st){
   const g=id=>document.getElementById(id);
   g('effect').value=st.effect||'';
   tbody.innerHTML='';(st.rows||[]).forEach(r=>addRow(r));if(!(st.rows||[]).length)addRow();
   const s=st.style||{};
-  ['effect','bg','top','bot','ink','font','fs','lw','spread','lenScale','maxLabelW','clean'].forEach(k=>{if(s[k]!=null)S[k]=s[k];});
+  ['effect','bg','top','bot','ink','font','fs','lw','spread','lenScale','clean','fit'].forEach(k=>{if(s[k]!=null)S[k]=s[k];});
   g('c_effect').value=S.effect;g('c_bg').value=S.bg;g('c_top').value=S.top;g('c_bot').value=S.bot;g('c_ink').value=S.ink;
   g('font').value=S.font;
   g('fs').value=S.fs;g('v_fs').textContent=S.fs;
   g('lw').value=S.lw;g('v_lw').textContent=S.lw;
   g('spread').value=S.spread;g('v_spread').textContent=S.spread;
   g('lenScale').value=S.lenScale;g('v_len').textContent=S.lenScale;
-  g('maxLabelW').value=S.maxLabelW;g('v_mw').textContent=S.maxLabelW;
-  g('cleanMode').checked=!!S.clean;
+  g('cleanMode').checked=S.clean!==false;
+  g('fitScreen').checked=S.fit!==false;
   draw();
 }
 function readMeta(){return{
@@ -619,7 +636,6 @@ function reflectEditing(){
 }
 document.getElementById('m_title').addEventListener('input',reflectEditing);
 
-/* モーダル */
 function openSaveModal(){reflectEditing();document.getElementById('saveModal').classList.add('show');document.getElementById('m_title').focus();}
 function closeSaveModal(){document.getElementById('saveModal').classList.remove('show');}
 
