@@ -3,14 +3,24 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>特性要因図 自動生成ツール</title>
+<title>特性要因図 自動生成ツール（クラウド保存版）</title>
 <style>
   :root{--ink:#1f2933;--sub:#52616b;--line:#c9d2d9;--bg:#f4f6f8;--accent:#2b6cb0;--card:#fff;}
   *{box-sizing:border-box;}
   body{margin:0;font-family:"Segoe UI","Hiragino Kaku Gothic ProN","Meiryo",sans-serif;color:var(--ink);background:var(--bg);}
   header{background:#1f2933;color:#fff;padding:14px 20px;}
+  .hbar{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;}
   header h1{margin:0;font-size:18px;font-weight:600;}
   header p{margin:4px 0 0;font-size:12px;color:#b0bcc7;}
+  .cloudstat{font-size:11px;color:#b0bcc7;margin-top:4px;}
+  .cloudstat b{color:#7fd1a3;}
+  .cloudstat.local b{color:#f6c177;}
+  .topnav{display:flex;gap:8px;}
+  .topnav button{background:#2b3947;color:#cbd5e0;border:1px solid #3a4a5a;padding:8px 14px;border-radius:6px;font-size:13px;cursor:pointer;}
+  .topnav button.active{background:var(--accent);color:#fff;border-color:var(--accent);}
+  .badge{display:inline-block;min-width:18px;padding:0 5px;border-radius:9px;background:#e53e3e;color:#fff;font-size:11px;text-align:center;line-height:18px;}
+  .screen{display:none;}
+  .screen.active{display:block;}
   .wrap{display:flex;gap:16px;padding:16px;align-items:flex-start;flex-wrap:wrap;}
   .panel{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px;}
   .left{flex:0 0 560px;max-width:100%;}
@@ -23,6 +33,9 @@
   details[open] summary::before{content:"\25BE ";}
   .details-body{padding:12px;}
   input[type=text].effect{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:6px;font-size:14px;}
+  .metagrid{display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:8px;}
+  .metagrid .fld input{width:100%;padding:8px;border:1px solid var(--line);border-radius:6px;font-size:13px;}
+  .editing{font-size:12px;color:var(--accent);align-self:center;}
   .presets{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0 4px;}
   .presets button,.theme button{font-size:11px;padding:5px 10px;border:1px solid var(--line);background:#fff;border-radius:14px;cursor:pointer;color:var(--sub);}
   .presets button:hover,.theme button:hover{background:#eef3f8;border-color:var(--accent);color:var(--accent);}
@@ -38,10 +51,12 @@
   .rowbtn button{border:none;background:none;cursor:pointer;font-size:12px;line-height:1;padding:4px 2px;color:var(--sub);}
   .rowbtn button.del{color:#b23;font-size:14px;}
   .rowbtn button:hover{color:var(--accent);}
-  .actions{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;}
+  .actions{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;align-items:center;}
   .btn{padding:9px 14px;border-radius:6px;border:none;cursor:pointer;font-size:13px;font-weight:600;}
+  .btn:disabled{opacity:.45;cursor:not-allowed;}
   .btn-primary{background:var(--accent);color:#fff;}
   .btn-ghost{background:#fff;color:var(--accent);border:1px solid var(--accent);}
+  .btn-ghost.danger{color:#c53030;border-color:#c53030;}
   .btn-add{background:#eef3f8;color:var(--accent);border:1px dashed var(--accent);}
   .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px 14px;}
   .fld{font-size:12px;color:var(--sub);}
@@ -53,23 +68,58 @@
   .hint{font-size:11px;color:var(--sub);margin-top:8px;line-height:1.7;}
   #chart{width:100%;overflow:auto;background:#fff;border-radius:6px;text-align:center;}
   svg{display:inline-block;}
+  .listwrap{padding:16px;}
+  .listbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px;}
+  table.listtbl{min-width:760px;}
+  table.listtbl th{padding:9px 10px;text-align:left;}
+  table.listtbl td{border:1px solid var(--line);padding:9px 10px;font-size:13px;color:var(--ink);}
+  table.listtbl td.op{white-space:nowrap;}
+  table.listtbl .mini{padding:5px 9px;font-size:12px;border-radius:5px;border:1px solid var(--line);background:#fff;cursor:pointer;margin-right:4px;color:var(--sub);}
+  table.listtbl .mini:hover{border-color:var(--accent);color:var(--accent);}
+  table.listtbl .mini.del:hover{border-color:#c53030;color:#c53030;}
+  .empty{padding:26px;text-align:center;color:var(--sub);font-size:13px;}
+  #toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1f2933;color:#fff;padding:10px 18px;border-radius:8px;font-size:13px;box-shadow:0 4px 14px rgba(0,0,0,.25);z-index:99;opacity:0;transition:opacity .2s;pointer-events:none;}
 </style>
 </head>
 <body>
 <header>
-  <h1>特性要因図 自動生成ツール</h1>
-  <p>QC7つ道具 — 6階層対応。配下の要因数に応じて間隔を自動調整。配色・書体・広がりも自由に調整。PNG出力可。</p>
+  <div class="hbar">
+    <div>
+      <h1>特性要因図 自動生成ツール</h1>
+      <p>QC7つ道具 — 6階層対応。作成日・変更日・部署・氏名・設定内容をクラウド（スプレッドシート）に永続保存。</p>
+      <div class="cloudstat" id="cloudStat">保存先を確認中…</div>
+    </div>
+    <nav class="topnav">
+      <button id="navEdit" class="active">✏ 編集</button>
+      <button id="navList">📋 保存一覧 <span id="cnt" class="badge">0</span></button>
+    </nav>
+  </div>
 </header>
 
+<!-- ===== 編集画面 ===== -->
+<div id="screenEditor" class="screen active">
 <div class="wrap">
   <div class="panel left">
     <h2>&#9312; 特性（結果・問題）</h2>
     <input type="text" id="effect" class="effect" value="転倒・転落インシデント" placeholder="例：転倒・転落インシデント">
 
-    <h2 style="margin-top:16px;">&#9313; 要因区分の雛形</h2>
+    <h2 style="margin-top:16px;">&#9313; 保存情報（この内容で履歴に残ります）</h2>
+    <div class="metagrid">
+      <div class="fld"><label>タイトル</label><input type="text" id="m_title" placeholder="例：転倒転落 要因分析"></div>
+      <div class="fld"><label>部署</label><input type="text" id="m_dept" placeholder="例：3階病棟"></div>
+      <div class="fld"><label>氏名</label><input type="text" id="m_name" placeholder="例：山田"></div>
+    </div>
+    <div class="actions">
+      <button class="btn btn-primary" id="saveNew">＋ 新規保存</button>
+      <button class="btn btn-ghost" id="saveOver" disabled>上書き更新</button>
+      <button class="btn btn-add" id="clearEdit">新規作成（クリア）</button>
+      <span id="editingLabel" class="editing"></span>
+    </div>
+
+    <h2 style="margin-top:16px;">&#9314; 要因区分の雛形</h2>
     <div class="presets" id="presets"></div>
 
-    <h2 style="margin-top:16px;">&#9314; 要因の入力（左のセルを空欄にすると上の階層を引き継ぎます）</h2>
+    <h2 style="margin-top:16px;">&#9315; 要因の入力（左のセルを空欄にすると上の階層を引き継ぎます）</h2>
     <div class="tablewrap">
       <table>
         <thead>
@@ -143,8 +193,44 @@
     <div id="chart"></div>
   </div>
 </div>
+</div>
+
+<!-- ===== 保存一覧画面 ===== -->
+<div id="screenList" class="screen">
+  <div class="listwrap">
+    <div class="panel">
+      <div class="listbar">
+        <button class="btn btn-ghost" id="backEdit">← 編集に戻る</button>
+        <button class="btn btn-add" id="reloadBtn">↻ 再読込</button>
+        <div style="flex:1"></div>
+        <button class="btn btn-add" id="impBtn">⬆ インポート</button>
+        <button class="btn btn-add" id="expAllBtn">⬇ 全件エクスポート</button>
+        <button class="btn btn-ghost danger" id="delAllBtn">全削除</button>
+        <input type="file" id="impFile" accept="application/json,.json" style="display:none">
+      </div>
+      <h2>保存一覧（保存内容の確認）</h2>
+      <div class="tablewrap">
+        <table class="listtbl">
+          <thead><tr>
+            <th style="width:40px;">#</th><th>タイトル</th><th style="width:120px;">部署</th>
+            <th style="width:90px;">氏名</th><th style="width:140px;">作成日</th>
+            <th style="width:140px;">変更日</th><th style="width:240px;">操作</th>
+          </tr></thead>
+          <tbody id="listBody"></tbody>
+        </table>
+      </div>
+      <p class="hint" id="listHint"></p>
+    </div>
+  </div>
+</div>
 
 <script>
+/* ============================================================
+   ★ここにGASウェブアプリの /exec URL を貼り付けてください★
+   空のままだと、このブラウザ内（localStorage）保存で動作します。
+   ============================================================ */
+const GAS_URL = '';
+
 const SVGNS="http://www.w3.org/2000/svg";
 const PRESETS={
   "4M":["人","機械","材料","方法"],
@@ -181,7 +267,7 @@ function addRow(vals){
   vals=vals||[];
   const tr=document.createElement('tr');
   let html='';
-  for(let c=0;c<6;c++)html+='<td><input type="text" class="cell" value="'+(vals[c]||'')+'"></td>';
+  for(let c=0;c<6;c++)html+='<td><input type="text" class="cell" value="'+escAttr(vals[c]||'')+'"></td>';
   html+='<td class="rowbtn"><button class="up" title="上へ">&#9650;</button></td>'+
         '<td class="rowbtn"><button class="dn" title="下へ">&#9660;</button></td>'+
         '<td class="rowbtn"><button class="del" title="削除">&times;</button></td>';
@@ -192,6 +278,7 @@ function addRow(vals){
   tr.querySelectorAll('.cell').forEach(i=>i.addEventListener('input',draw));
   tbody.appendChild(tr);
 }
+function escAttr(s){return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');}
 seed.forEach(r=>addRow(r));
 document.getElementById('addRow').onclick=()=>addRow();
 document.getElementById('effect').addEventListener('input',draw);
@@ -217,7 +304,6 @@ document.getElementById('lw').addEventListener('input',e=>{S.lw=+e.target.value;
 document.getElementById('spread').addEventListener('input',e=>{S.spread=+e.target.value;v_spread.textContent=e.target.value;draw();});
 document.getElementById('lenScale').addEventListener('input',e=>{S.lenScale=+e.target.value;v_len.textContent=e.target.value;draw();});
 
-// 表 → 階層ツリー
 function collect(){
   const rows=[...tbody.querySelectorAll('tr')];
   const root={name:'__root',children:[]};
@@ -244,7 +330,7 @@ function draw(){
   const effect=document.getElementById('effect').value.trim()||"（特性）";
   const cats=collect();
   const fs=S.fs, spread=S.spread, lenScale=S.lenScale;
-  const UNIT=26*spread;                 // 1葉あたりの間隔
+  const UNIT=26*spread;
   const lines=[],rects=[],texts=[],polys=[];
 
   function sizeOf(d){return Math.max(9,[fs+1,fs-1,fs-1,fs-2,fs-2,fs-3][Math.min(d,5)]);}
@@ -290,7 +376,6 @@ function draw(){
     });
   }
 
-  // 背骨・特性ボックス（間隔は配下の要因数で自動計算）
   const catW=cats.map(leafCount);
   const catTotal=catW.reduce((a,b)=>a+b,0)||1;
   const spineUsable=Math.max(520, catTotal*34*spread, cats.length*150*spread);
@@ -313,7 +398,6 @@ function draw(){
     layout(ax,0,cat,0,top?S.top:S.bot,catDir);
   });
 
-  // バウンディングボックス
   let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;
   const ext=(x,y)=>{if(x<minX)minX=x;if(x>maxX)maxX=x;if(y<minY)minY=y;if(y>maxY)maxY=y;};
   lines.forEach(l=>{ext(l.x1,l.y1);ext(l.x2,l.y2);});
@@ -335,7 +419,6 @@ function draw(){
 
   const chart=document.getElementById('chart');chart.innerHTML="";chart.appendChild(svg);
 }
-
 function el(tag,attrs){const e=document.createElementNS(SVGNS,tag);for(const k in attrs)e.setAttribute(k,attrs[k]);return e;}
 function txt(s,x,y,fill,size,weight,anchor){const t=el('text',{x,y,fill,'font-size':size,'font-weight':weight,'text-anchor':anchor});t.textContent=s;return t;}
 
@@ -348,11 +431,243 @@ document.getElementById('png').onclick=()=>{
   const url=URL.createObjectURL(new Blob([xml],{type:'image/svg+xml;charset=utf-8'}));
   img.onload=()=>{const cv=document.createElement('canvas');cv.width=vb[2]*scale;cv.height=vb[3]*scale;
     const ctx=cv.getContext('2d');ctx.scale(scale,scale);ctx.drawImage(img,0,0);URL.revokeObjectURL(url);
-    const a=document.createElement('a');a.download='特性要因図.png';a.href=cv.toDataURL('image/png');a.click();};
+    const a=document.createElement('a');a.download=(document.getElementById('m_title').value.trim()||'特性要因図')+'.png';a.href=cv.toDataURL('image/png');a.click();};
   img.src=url;
 };
 document.getElementById('draw').onclick=draw;
 draw();
+
+/* ============================================================
+   保存・履歴管理（クラウド優先／未設定時ローカル）
+   ============================================================ */
+const CLOUD = ()=>!!(GAS_URL && GAS_URL.trim());
+const LKEY  = 'qc_fishbone_saves_v1';
+let editingId=null;
+
+/* --- クラウドAPI（text/plainでプリフライト回避） --- */
+async function api(action, payload){
+  const body = JSON.stringify(Object.assign({action}, payload||{}));
+  const res = await fetch(GAS_URL, {method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'}, redirect:'follow', body});
+  const data = await res.json();
+  if(data && data.ok===false) throw new Error(data.error||'server error');
+  return data;
+}
+/* --- ローカル（フォールバック） --- */
+function localAll(){try{return JSON.parse(localStorage.getItem(LKEY))||[];}catch(e){return[];}}
+function localPut(arr){localStorage.setItem(LKEY, JSON.stringify(arr));}
+
+/* --- 統一ストア --- */
+const store = {
+  async list(){
+    if(CLOUD()) return (await api('list')).records||[];
+    return localAll().map(r=>({id:r.id,title:r.title,dept:r.dept,name:r.name,created:r.created,modified:r.modified,lastAccess:r.lastAccess}));
+  },
+  async get(id){
+    if(CLOUD()) return (await api('get',{id})).record;
+    const r=localAll().find(x=>x.id===id); return r? r : null;
+  },
+  async save(rec){
+    if(CLOUD()){ const r=await api('save',{record:rec}); rec.id=r.id; return rec; }
+    const arr=localAll(); const now=new Date().toISOString();
+    if(rec.id){ const t=arr.find(x=>x.id===rec.id);
+      if(t){t.title=rec.title;t.dept=rec.dept;t.name=rec.name;t.modified=now;t.lastAccess=now;t.state=rec.state;localPut(arr);return t;} }
+    rec.id='f'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+    rec.created=now;rec.modified=now;rec.lastAccess=now;arr.push(rec);localPut(arr);return rec;
+  },
+  async del(id){ if(CLOUD()){await api('delete',{id});return;} localPut(localAll().filter(x=>x.id!==id)); },
+  async delAll(){ if(CLOUD()){await api('deleteAll');return;} localPut([]); },
+  async exportAll(){ if(CLOUD()) return (await api('export')).records||[]; return localAll(); }
+};
+
+/* --- 画面ヘルパ --- */
+function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+function fmt(iso){if(!iso)return'';const d=new Date(iso);if(isNaN(d))return'';const p=n=>('0'+n).slice(-2);
+  return d.getFullYear()+'/'+p(d.getMonth()+1)+'/'+p(d.getDate())+' '+p(d.getHours())+':'+p(d.getMinutes());}
+
+function getState(){
+  const rows=[...tbody.querySelectorAll('tr')]
+    .map(tr=>[...tr.querySelectorAll('.cell')].map(i=>i.value))
+    .filter(r=>r.some(v=>v.trim()!==''));
+  return {effect:document.getElementById('effect').value,rows,
+    style:{effect:S.effect,bg:S.bg,top:S.top,bot:S.bot,ink:S.ink,font:S.font,fs:S.fs,lw:S.lw,spread:S.spread,lenScale:S.lenScale}};
+}
+function setState(st){
+  const g=id=>document.getElementById(id);
+  g('effect').value=st.effect||'';
+  tbody.innerHTML='';(st.rows||[]).forEach(r=>addRow(r));if(!(st.rows||[]).length)addRow();
+  const s=st.style||{};
+  ['effect','bg','top','bot','ink','font','fs','lw','spread','lenScale'].forEach(k=>{if(s[k]!=null)S[k]=s[k];});
+  g('c_effect').value=S.effect;g('c_bg').value=S.bg;g('c_top').value=S.top;g('c_bot').value=S.bot;g('c_ink').value=S.ink;
+  g('font').value=S.font;
+  g('fs').value=S.fs;g('v_fs').textContent=S.fs;
+  g('lw').value=S.lw;g('v_lw').textContent=S.lw;
+  g('spread').value=S.spread;g('v_spread').textContent=S.spread;
+  g('lenScale').value=S.lenScale;g('v_len').textContent=S.lenScale;
+  draw();
+}
+function readMeta(){return{
+  title:document.getElementById('m_title').value.trim(),
+  dept:document.getElementById('m_dept').value.trim(),
+  name:document.getElementById('m_name').value.trim()};}
+function reflectEditing(){
+  const b=document.getElementById('saveOver'), lbl=document.getElementById('editingLabel');
+  if(editingId){b.disabled=false;lbl.textContent='編集中：'+(document.getElementById('m_title').value.trim()||'（保存済みデータ）');}
+  else{b.disabled=true;lbl.textContent='';}
+}
+
+async function saveNew(){
+  const m=readMeta();
+  if(!m.title){alert('タイトルを入力してください。');document.getElementById('m_title').focus();return;}
+  try{
+    const saved=await store.save({title:m.title,dept:m.dept,name:m.name,state:getState()});
+    editingId=saved.id;reflectEditing();refreshCount();
+    toast('「'+m.title+'」を新規保存しました。');
+  }catch(e){alert('保存に失敗しました：'+e.message);}
+}
+async function saveOver(){
+  if(!editingId)return;
+  const m=readMeta();
+  if(!m.title){alert('タイトルを入力してください。');return;}
+  try{
+    await store.save({id:editingId,title:m.title,dept:m.dept,name:m.name,state:getState()});
+    reflectEditing();toast('「'+m.title+'」を上書き更新しました。');
+  }catch(e){alert('更新に失敗しました：'+e.message);}
+}
+function clearEdit(){
+  editingId=null;
+  document.getElementById('m_title').value='';
+  document.getElementById('m_dept').value='';
+  document.getElementById('m_name').value='';
+  reflectEditing();
+  toast('新規作成モードにしました（保存すると別データになります）。');
+}
+
+async function openRecord(id){
+  try{
+    const r=await store.get(id);if(!r){alert('データが見つかりませんでした。');return;}
+    setState(r.state||{});
+    document.getElementById('m_title').value=r.title||'';
+    document.getElementById('m_dept').value=r.dept||'';
+    document.getElementById('m_name').value=r.name||'';
+    editingId=r.id;reflectEditing();showScreen('edit');
+    toast('「'+(r.title||'無題')+'」を読み込みました。');
+  }catch(e){alert('読込に失敗しました：'+e.message);}
+}
+async function dupRecord(id){
+  try{
+    const r=await store.get(id);if(!r)return;
+    await store.save({title:(r.title||'無題')+'（複製）',dept:r.dept,name:r.name,state:r.state});
+    renderList();
+  }catch(e){alert('複製に失敗しました：'+e.message);}
+}
+async function delRecord(id,title){
+  if(!confirm('「'+(title||'')+'」を削除しますか？'))return;
+  try{ await store.del(id); if(editingId===id){editingId=null;reflectEditing();} renderList(); }
+  catch(e){alert('削除に失敗しました：'+e.message);}
+}
+async function delAll(){
+  if(!confirm('保存された全データを削除します。よろしいですか？（元に戻せません）'))return;
+  try{ await store.delAll(); editingId=null;reflectEditing(); renderList(); }
+  catch(e){alert('削除に失敗しました：'+e.message);}
+}
+
+/* エクスポート／インポート */
+function download(name,text){const b=new Blob([text],{type:'application/json'});const u=URL.createObjectURL(b);
+  const a=document.createElement('a');a.href=u;a.download=name;a.click();URL.revokeObjectURL(u);}
+function stamp(){const d=new Date(),p=n=>('0'+n).slice(-2);return ''+d.getFullYear()+p(d.getMonth()+1)+p(d.getDate())+'_'+p(d.getHours())+p(d.getMinutes());}
+async function exportAll(){
+  try{const arr=await store.exportAll();if(!arr.length){alert('保存データがありません。');return;}
+    download('特性要因図_保存データ_'+stamp()+'.json',JSON.stringify(arr,null,2));
+  }catch(e){alert('エクスポートに失敗しました：'+e.message);}
+}
+function importFile(file){
+  const rd=new FileReader();
+  rd.onload=async()=>{try{
+    let data=JSON.parse(rd.result);if(!Array.isArray(data))data=[data];
+    let n=0;
+    for(const d of data){ if(d&&d.state){ await store.save({title:d.title,dept:d.dept,name:d.name,state:d.state}); n++; } }
+    renderList();toast(n+'件を取り込みました。');
+  }catch(e){alert('読み込みに失敗しました：'+e.message);}};
+  rd.readAsText(file);
+}
+
+async function renderList(){
+  const tb=document.getElementById('listBody');
+  tb.innerHTML='<tr><td colspan="7" class="empty">読み込み中…</td></tr>';
+  let arr;
+  try{ arr=await store.list(); }
+  catch(e){ tb.innerHTML='<tr><td colspan="7" class="empty">読み込みに失敗しました：'+esc(e.message)+'</td></tr>'; return; }
+  arr.sort((a,b)=>(b.modified||'').localeCompare(a.modified||''));
+  document.getElementById('cnt').textContent=arr.length;
+  if(!arr.length){
+    tb.innerHTML='<tr><td colspan="7" class="empty">保存データはありません。編集画面でタイトルを入力し「新規保存」してください。</td></tr>';
+    document.getElementById('listHint').textContent='';return;
+  }
+  tb.innerHTML='';
+  arr.forEach((r,i)=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML='<td>'+(i+1)+'</td>'+
+      '<td>'+esc(r.title||'（無題）')+'</td>'+
+      '<td>'+esc(r.dept||'')+'</td>'+
+      '<td>'+esc(r.name||'')+'</td>'+
+      '<td>'+fmt(r.created)+'</td>'+
+      '<td>'+fmt(r.modified)+'</td>'+
+      '<td class="op">'+
+        '<button class="mini open">開く</button>'+
+        '<button class="mini exp">書出</button>'+
+        '<button class="mini dup">複製</button>'+
+        '<button class="mini del">削除</button>'+
+      '</td>';
+    tr.querySelector('.open').onclick=()=>openRecord(r.id);
+    tr.querySelector('.exp').onclick=async()=>{const f=await store.get(r.id);if(f)download('特性要因図_'+(f.title||'無題')+'.json',JSON.stringify(f,null,2));};
+    tr.querySelector('.dup').onclick=()=>dupRecord(r.id);
+    tr.querySelector('.del').onclick=()=>delRecord(r.id,r.title);
+    tb.appendChild(tr);
+  });
+  document.getElementById('listHint').innerHTML= CLOUD()
+    ? '※ データはスプレッドシートに保存され、全員で共有されます。最終アクセスから3年経過したデータは自動削除の対象です（開けば期限が更新されます）。'
+    : '※ 現在は<b>このブラウザ内（localStorage）</b>に保存しています。共有には「書出／全件エクスポート」→相手が「インポート」。全員共有にはGAS_URLの設定が必要です。';
+}
+
+async function refreshCount(){
+  try{const arr=await store.list();document.getElementById('cnt').textContent=arr.length;}catch(e){}
+}
+function setCloudStatus(){
+  const el=document.getElementById('cloudStat');
+  if(CLOUD()){el.className='cloudstat';el.innerHTML='保存先：<b>☁ クラウド（スプレッドシート・全員で共有）</b>';}
+  else{el.className='cloudstat local';el.innerHTML='保存先：<b>💾 このブラウザのみ</b>（全員共有にはコード内 GAS_URL を設定してください）';}
+}
+
+function showScreen(which){
+  const e=(which==='edit');
+  document.getElementById('screenEditor').classList.toggle('active',e);
+  document.getElementById('screenList').classList.toggle('active',!e);
+  document.getElementById('navEdit').classList.toggle('active',e);
+  document.getElementById('navList').classList.toggle('active',!e);
+  if(!e)renderList(); else setTimeout(draw,0);
+  window.scrollTo(0,0);
+}
+
+let toastTimer;
+function toast(msg){let t=document.getElementById('toast');
+  if(!t){t=document.createElement('div');t.id='toast';document.body.appendChild(t);}
+  t.textContent=msg;t.style.opacity='1';clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>t.style.opacity='0',2200);}
+
+document.getElementById('saveNew').onclick=saveNew;
+document.getElementById('saveOver').onclick=saveOver;
+document.getElementById('clearEdit').onclick=clearEdit;
+document.getElementById('navEdit').onclick=()=>showScreen('edit');
+document.getElementById('navList').onclick=()=>showScreen('list');
+document.getElementById('backEdit').onclick=()=>showScreen('edit');
+document.getElementById('reloadBtn').onclick=renderList;
+document.getElementById('expAllBtn').onclick=exportAll;
+document.getElementById('delAllBtn').onclick=delAll;
+document.getElementById('impBtn').onclick=()=>document.getElementById('impFile').click();
+document.getElementById('impFile').onchange=e=>{if(e.target.files[0])importFile(e.target.files[0]);e.target.value='';};
+
+setCloudStatus();
+refreshCount();
 </script>
 </body>
 </html>
